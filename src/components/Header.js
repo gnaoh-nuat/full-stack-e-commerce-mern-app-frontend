@@ -3,14 +3,17 @@ import Logo from "./Logo";
 import { GrSearch } from "react-icons/gr";
 import { FaRegCircleUser } from "react-icons/fa6";
 import { FaShoppingCart } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   return (
-    <header className="h-16 shadow-md">
+    <header className="h-16 shadow-md bg-white">
       {/* Logo */}
       <div className="h-full container mx-auto flex items-center px-4 justify-between">
         <div className="">
-          <Logo w={90} h={50} />
+          <Link to={"/"}>
+            <Logo w={90} h={50} />
+          </Link>
         </div>
 
         {/* search bar */}
@@ -44,9 +47,12 @@ const Header = () => {
 
           {/* login & log out*/}
           <div>
-            <button className="px-3 py-1 rounded-full text-white bg-red-600 hover:bg-red-700">
+            <Link
+              to={"/login"}
+              className="px-3 py-1 rounded-full text-white bg-red-600 hover:bg-red-700"
+            >
               Login
-            </button>
+            </Link>
           </div>
         </div>
       </div>
