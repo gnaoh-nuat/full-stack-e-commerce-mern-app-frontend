@@ -41,11 +41,13 @@ const Login = () => {
 
     const dataApi = await dataResponse.json();
 
+    // console.log("Dữ liệu trả về khi đăng nhập:", dataApi);
+
     if (dataApi.success) {
       toast.success(dataApi.message);
+      await fetchUserDetails();
+      await fetchUserAddToCart();
       navigate("/");
-      fetchUserDetails();
-      fetchUserAddToCart();
     }
 
     if (dataApi.error) {
@@ -53,7 +55,7 @@ const Login = () => {
     }
   };
 
-  console.log("data login", data);
+  //   console.log("data login", data);
 
   return (
     <section id="login">

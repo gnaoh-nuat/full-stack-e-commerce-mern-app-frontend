@@ -10,26 +10,27 @@ const Home = () => {
       <CategoryList />
       <BannerProduct />
 
-      <HorizontalCardProduct category={"airpodes"} heading={"Top's Airpodes"} />
+      <HorizontalCardProduct category={"AirPods"} heading={"Top's AirPods"} />
       <HorizontalCardProduct
-        category={"watches"}
+        category={"Watches"}
         heading={"Popular's Watches"}
       />
 
-      <VerticalCardProduct category={"mobiles"} heading={"Mobiles"} />
+      <VerticalCardProduct category={"Mobiles"} heading={"Mobiles"} />
       <VerticalCardProduct category={"Mouse"} heading={"Mouse"} />
-      <VerticalCardProduct category={"televisions"} heading={"Televisions"} />
+      <VerticalCardProduct category={"Televisions"} heading={"Televisions"} />
       <VerticalCardProduct
-        category={"camera"}
+        category={"Camera"}
         heading={"Camera & Photography"}
       />
-      <VerticalCardProduct category={"earphones"} heading={"Wired Earphones"} />
+      <VerticalCardProduct category={"Earphones"} heading={"Wired Earphones"} />
       <VerticalCardProduct
-        category={"speakers"}
+        category={"Speakers"}
         heading={"Bluetooth Speakers"}
       />
-      <VerticalCardProduct category={"refrigerator"} heading={"Refrigerator"} />
-      <VerticalCardProduct category={"trimmers"} heading={"Trimmers"} />
+      <VerticalCardProduct category={"Refrigerator"} heading={"Refrigerator"} />
+      <VerticalCardProduct category={"Trimmers"} heading={"Trimmers"} />
+      <VerticalCardProduct category={"Printer"} heading={"Printer"} />
     </div>
   );
 };

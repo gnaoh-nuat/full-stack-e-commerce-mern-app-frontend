@@ -20,7 +20,7 @@ const Cart = () => {
     });
 
     const responseData = await response.json();
-
+    // console.log("Dữ liệu giỏ hàng từ server:", responseData.data);
     if (responseData.success) {
       setData(responseData.data);
     }
@@ -31,10 +31,24 @@ const Cart = () => {
   };
 
   useEffect(() => {
-    setLoading(true);
-    handleLoading();
-    setLoading(false);
-  }, []);
+    // Tạo một hàm async bên trong useEffect
+    const loadCartData = async () => {
+      setLoading(true);
+      try {
+        // 1. Thử thực hiện việc lấy dữ liệu
+        await fetchData();
+      } catch (error) {
+        // 2. Nếu có lỗi, hãy in ra để chúng ta biết nó là gì
+        console.error("Lỗi khi tải giỏ hàng:", error);
+      } finally {
+        // 3. Dù thành công hay thất bại, luôn luôn tắt trạng thái loading
+        setLoading(false);
+      }
+    };
+
+    // Gọi hàm vừa tạo
+    loadCartData();
+  }, []); // Mảng rỗng đảm bảo nó chỉ chạy một lần khi component được tải
 
   const increaseQty = async (id, qty) => {
     const response = await fetch(SummaryApi.updateCartProduct.url, {
@@ -103,7 +117,7 @@ const Cart = () => {
     0
   );
   const totalPrice = data.reduce(
-    (preve, curr) => preve + curr.quantity * curr?.productId?.sellingPrice,
+    (preve, curr) => preve + curr.quantity * curr?.product?.sellingPrice,
     0
   );
   return (
@@ -134,7 +148,7 @@ const Cart = () => {
                   >
                     <div className="w-32 h-32 bg-slate-200">
                       <img
-                        src={product?.productId?.productImage[0]}
+                        src={product?.product?.productImage?.[0]}
                         className="w-full h-full object-scale-down mix-blend-multiply"
                       />
                     </div>
@@ -148,18 +162,18 @@ const Cart = () => {
                       </div>
 
                       <h2 className="text-lg lg:text-xl text-ellipsis line-clamp-1">
-                        {product?.productId?.productName}
+                        {product?.product?.productName}
                       </h2>
                       <p className="capitalize text-slate-500">
-                        {product?.productId.category}
+                        {product?.product.category}
                       </p>
                       <div className="flex items-center justify-between">
                         <p className="text-red-600 font-medium text-lg">
-                          {displayINRCurrency(product?.productId?.sellingPrice)}
+                          {displayINRCurrency(product?.product?.sellingPrice)}
                         </p>
                         <p className="text-slate-600 font-semibold text-lg">
                           {displayINRCurrency(
-                            product?.productId?.sellingPrice * product?.quantity
+                            product?.product?.sellingPrice * product?.quantity
                           )}
                         </p>
                       </div>

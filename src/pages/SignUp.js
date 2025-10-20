@@ -57,6 +57,8 @@ const SignUp = () => {
 
       const dataApi = await dataResponse.json();
 
+      // console.log("Dữ liệu trả về khi đăng nhập:", dataApi);
+
       if (dataApi.success) {
         toast.success(dataApi.message);
         navigate("/login");
