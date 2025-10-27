@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import SummaryApi from "../common";
 import { toast } from "react-toastify";
 import displayVNDCurrency from "../helpers/displayCurrency";
+import { FaArrowLeft } from "react-icons/fa"; // <-- THÊM IMPORT ICON
 
 const OrderDetails = () => {
   const { id: orderId } = useParams();
@@ -23,7 +24,7 @@ const OrderDetails = () => {
         setOrder(responseData.data);
       } else {
         toast.error(responseData.message);
-        navigate("/profile/orders"); // Sửa lại: nên điều hướng về trang MyOrders
+        navigate("/my-orders"); // Sửa lại: nên điều hướng về trang MyOrders
       }
     } catch (err) {
       toast.error("Lỗi khi tải chi tiết đơn hàng: " + err.message);
@@ -40,7 +41,6 @@ const OrderDetails = () => {
   const handleCancelOrder = async () => {
     if (window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) {
       try {
-        // Gọi API theo đúng route backend: /order/:id/cancel
         const response = await fetch(
           `${SummaryApi.cancelOrder.url}${orderId}/cancel`,
           {
@@ -64,6 +64,11 @@ const OrderDetails = () => {
     }
   };
 
+  // --- [THÊM MỚI] Hàm quay lại ---
+  const handleGoBack = () => {
+    navigate(-1); // Quay lại trang trước đó trong lịch sử trình duyệt
+  };
+
   // --- Hiển thị khi đang tải ---
   if (loading) {
     return <p className="text-center p-10">Đang tải chi tiết đơn hàng...</p>;
@@ -77,6 +82,16 @@ const OrderDetails = () => {
   // --- Giao diện chính ---
   return (
     <div className="container mx-auto max-w-4xl p-4 my-8">
+      {/* === [THÊM MỚI] NÚT QUAY LẠI === */}
+      <button
+        onClick={handleGoBack}
+        className="flex items-center gap-2 text-slate-600 hover:text-red-600 mb-4 font-medium"
+      >
+        <FaArrowLeft />
+        Quay lại
+      </button>
+      {/* === KẾT THÚC NÚT === */}
+
       <div className="bg-white shadow-lg rounded-lg p-6">
         {/* Header đơn hàng */}
         <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b pb-4 mb-4">
@@ -113,11 +128,9 @@ const OrderDetails = () => {
               <p>
                 Phương thức:
                 <span className="font-bold ml-1">
-                  {/* === [SỬA LỖI] === */}
                   {order.paymentMethod === "CASH"
                     ? "Thanh toán khi nhận hàng (COD)"
                     : "Thanh toán qua VNPAY"}
-                  {/* === KẾT THÚC SỬA === */}
                 </span>
               </p>
               <p>

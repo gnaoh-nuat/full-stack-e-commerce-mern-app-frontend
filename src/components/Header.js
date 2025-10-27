@@ -51,6 +51,15 @@ const Header = () => {
   }, [menuDisplay]);
 
   // ==============================
+  // 💡 [FIX] ĐỒNG BỘ SEARCH STATE VỚI URL
+  // ==============================
+  useEffect(() => {
+    // Cập nhật state của thanh tìm kiếm nếu queryParam từ URL thay đổi
+    // (ví dụ: khi người dùng bấm nút Back/Forward của trình duyệt)
+    setSearch(queryParam);
+  }, [queryParam]);
+
+  // ==============================
   // 🔍 HÀM XỬ LÝ TÌM KIẾM
   // ==============================
   const handleSearch = (e) => {

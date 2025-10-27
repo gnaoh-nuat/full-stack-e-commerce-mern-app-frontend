@@ -33,17 +33,46 @@ const AdminEditProduct = ({ onClose, productData, fetchdata }) => {
     });
   };
 
+  // *** ĐÂY LÀ HÀM ĐÃ ĐƯỢC SỬA ***
   const handleUploadProduct = async (e) => {
     const file = e.target.files[0];
-    const uploadImageCloudinary = await uploadImage(file);
+    if (!file) return;
 
-    setData((preve) => {
-      return {
-        ...preve,
-        productImage: [...preve.productImage, uploadImageCloudinary.url],
-      };
-    });
+    // Thêm try...catch và toast để xử lý lỗi
+    try {
+      const uploadResponse = await uploadImage(file);
+      console.log("Kết quả từ API (AdminEditProduct):", uploadResponse);
+
+      // Dùng logic giống hệt file UploadProduct
+      if (
+        uploadResponse.success &&
+        uploadResponse.result &&
+        uploadResponse.result[0]
+      ) {
+        // Lấy đúng trường 'imageUrl'
+        const imageUrl = uploadResponse.result[0].imageUrl;
+
+        if (imageUrl) {
+          // Thêm URL hợp lệ vào state
+          setData((preve) => {
+            return {
+              ...preve,
+              productImage: [...preve.productImage, imageUrl],
+            };
+          });
+          toast.success("Tải ảnh lên thành công!");
+        } else {
+          toast.error("Tải lên thành công nhưng không tìm thấy URL ảnh.");
+        }
+      } else {
+        toast.error("Tải ảnh lên thất bại. (API báo lỗi)");
+      }
+    } catch (error) {
+      toast.error("Đã xảy ra lỗi khi xử lý ảnh.");
+      console.error("Lỗi từ catch (AdminEditProduct):", error);
+    }
   };
+  // *** KẾT THÚC HÀM ĐÃ SỬA ***
 
   const handleDeleteProductImage = async (index) => {
     console.log("image index", index);
@@ -88,8 +117,8 @@ const AdminEditProduct = ({ onClose, productData, fetchdata }) => {
     // Backdrop hiện đại hơn
     <div className="fixed w-full h-full bg-black bg-opacity-40 top-0 left-0 right-0 bottom-0 flex justify-center items-center p-4">
       {/* Modal Box với layout flex-col (Header, Body-scroll, Footer)
-        Đã xóa 'h-full' để 'items-center' có thể căn giữa
-      */}
+        Đã xóa 'h-full' để 'items-center' có thể căn giữa
+      */}
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Modal Header */}
         <div className="flex justify-between items-center p-6 border-b border-slate-200">
@@ -202,7 +231,7 @@ const AdminEditProduct = ({ onClose, productData, fetchdata }) => {
                 <div className="flex items-center gap-3 mt-3">
                   {data.productImage.map((el, index) => {
                     return (
-                      <div className="relative group">
+                      <div className="relative group" key={index}>
                         <img
                           src={el}
                           alt={el}

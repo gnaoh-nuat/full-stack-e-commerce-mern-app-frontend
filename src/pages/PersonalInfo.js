@@ -1,12 +1,18 @@
-import React, { useEffect, useState, useCallback } from "react"; // Thêm useCallback
+import React, { useEffect, useState, useCallback } from "react";
 import SummaryApi from "../common";
-import { FaUser, FaPen } from "react-icons/fa"; // Sửa lỗi: react-icons/fa
-// (Bạn có thể thêm thư viện thông báo như react-toastify)
-// import { toast } from 'react-toastify';
+import { FaUser, FaPen } from "react-icons/fa";
+import { toast } from "react-toastify"; // (Giả sử bạn đã cài)
+
+// === BƯỚC 1: IMPORT ===
+import { useDispatch } from "react-redux";
+import { setUserDetails } from "../store/userSlice"; // (Kiểm tra lại đường dẫn)
 
 const PersonalInfo = () => {
+  // === BƯỚC 2: KHỞI TẠO DISPATCH ===
+  const dispatch = useDispatch();
+
   const [userData, setUserData] = useState({
-    _id: "", // Cần lưu _id để biết update cho user nào
+    _id: "",
     name: "",
     email: "",
     gender: "",
@@ -14,13 +20,9 @@ const PersonalInfo = () => {
     profilePic: "",
   });
 
-  // State để lưu dữ liệu gốc
   const [originalUserData, setOriginalUserData] = useState(null);
-  // State để theo dõi thay đổi
   const [isDirty, setIsDirty] = useState(false);
-  // State để lưu file avatar mới
   const [newAvatarFile, setNewAvatarFile] = useState(null);
-  // State cho loading
   const [loading, setLoading] = useState(false);
 
   //Hàm xử lý khi người dùng thay đổi giá trị input
@@ -60,7 +62,7 @@ const PersonalInfo = () => {
     }
   };
 
-  // === SỬA LỖI: Bọc hàm bằng useCallback ===
+  // === BƯỚC 3: SỬA HÀM FETCHUSERDETAIL ===
   const fetchUserDetail = useCallback(async () => {
     try {
       const response = await fetch(SummaryApi.current_user.url, {
@@ -72,51 +74,48 @@ const PersonalInfo = () => {
       });
       const dataApi = await response.json();
       if (dataApi.success) {
+        // GỬI DỮ LIỆU LÊN REDUX
+        dispatch(setUserDetails(dataApi.data));
+
+        // Cập nhật state nội bộ
         const formattedData = {
           ...dataApi.data,
           dateOfBirth: formatDateForInput(dataApi.data.dateOfBirth),
         };
         setUserData(formattedData);
-        setOriginalUserData(formattedData); // Lưu trạng thái gốc
-        setIsDirty(false); // Reset trạng thái
-        setNewAvatarFile(null); // Reset file
+        setOriginalUserData(formattedData);
+        setIsDirty(false);
+        setNewAvatarFile(null);
       }
     } catch (error) {
       console.error("Lỗi khi lấy dữ liệu:", error);
     }
-  }, []); // Thêm mảng dependency rỗng cho useCallback
+  }, [dispatch]); // <-- Thêm 'dispatch' vào dependency array
 
   // Effect để lấy dữ liệu người dùng ban đầu
   useEffect(() => {
     fetchUserDetail();
-  }, [fetchUserDetail]); // === SỬA LỖI: Thêm dependency ===
+  }, [fetchUserDetail]);
 
   // Effect để kiểm tra thay đổi
   useEffect(() => {
-    // Chỉ so sánh khi originalUserData đã được tải
     if (originalUserData) {
-      // 1. Kiểm tra file avatar mới
       const avatarChanged = newAvatarFile !== null;
-
-      // 2. Kiểm tra thông tin text
       const textChanged =
         originalUserData.name !== userData.name ||
         originalUserData.email !== userData.email ||
         originalUserData.gender !== userData.gender ||
         originalUserData.dateOfBirth !== userData.dateOfBirth;
-
-      // Hiển thị nút "Lưu" nếu 1 trong 2 thay đổi
       setIsDirty(avatarChanged || textChanged);
     }
-  }, [userData, originalUserData, newAvatarFile]); // Chạy lại mỗi khi 1 trong 3 state này thay đổi
+  }, [userData, originalUserData, newAvatarFile]);
 
   // Hàm xử lý submit
   const handleSubmit = async () => {
     setLoading(true);
-    // toast.info("Đang cập nhật...");
+    toast.info("Đang cập nhật...");
 
     try {
-      // Kiểm tra lại xem cái gì đã thay đổi
       const avatarChanged = newAvatarFile !== null;
       const textChanged =
         originalUserData.name !== userData.name ||
@@ -130,16 +129,13 @@ const PersonalInfo = () => {
       // --- Tác vụ 1: Upload Avatar (nếu có) ---
       if (avatarChanged) {
         const formData = new FormData();
-
-        // === SỬA LỖI CHÍNH ===
-        // Tên key "files" phải khớp với file middleware Multer (upload.array('files', 10))
-        // và khớp với Postman bạn đã test thành công.
-        formData.append("files", newAvatarFile); // <-- ĐÃ SỬA TỪ "avatar" THÀNH "files"
+        // Tên 'files' phải khớp với backend Multer của bạn
+        formData.append("files", newAvatarFile);
 
         const response = await fetch(SummaryApi.uploadAvatar.url, {
           method: "POST",
           credentials: "include",
-          body: formData, // Gửi FormData, không cần 'Content-Type'
+          body: formData,
         });
         const dataApi = await response.json();
         avatarSuccess = dataApi.success;
@@ -157,12 +153,11 @@ const PersonalInfo = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            userId: userData._id, // Gửi ID của user cần update
+            userId: userData._id,
             name: userData.name,
             email: userData.email,
             gender: userData.gender,
             dateOfBirth: userData.dateOfBirth,
-            // Không gửi profilePic ở đây
           }),
         });
         const dataApi = await response.json();
@@ -172,13 +167,13 @@ const PersonalInfo = () => {
         }
       }
 
-      // alert("Cập nhật thành công!");
-      // toast.success("Cập nhật thành công!");
+      toast.success("Cập nhật thành công!");
     } catch (error) {
       console.error("Lỗi khi submit:", error);
-      // toast.error(error.message || "Cập nhật thất bại!");
+      toast.error(error.message || "Cập nhật thất bại!");
     } finally {
       // Dù thành công hay thất bại, tải lại dữ liệu mới nhất từ server
+      // Hàm này BÂY GIỜ đã chứa 'dispatch' nên sẽ cập nhật Redux
       await fetchUserDetail();
       setLoading(false);
     }
@@ -227,7 +222,7 @@ const PersonalInfo = () => {
           />
         </div>
 
-        {/* info (Giữ nguyên không đổi) */}
+        {/* info */}
         <div className="space-y-6">
           {/* Họ tên */}
           <div className="grid grid-cols-3 items-center">
@@ -299,7 +294,8 @@ const PersonalInfo = () => {
 
           {/* Email */}
           <div className="grid grid-cols-3 items-center">
-            <div className="col-span-1">Email: T</div>
+            {/* Sửa lại text "Email: T" thành "Email:" */}
+            <div className="col-span-1">Email: </div>
             <div className="col-span-2">
               <input
                 type="text"
@@ -315,10 +311,10 @@ const PersonalInfo = () => {
 
       {/* Hiển thị nút có điều kiện */}
       <div className="mt-6 flex justify-center">
-        {isDirty && ( // Chỉ hiển thị nút khi isDirty là true
+        {isDirty && (
           <button
-            onClick={handleSubmit} // Thêm onClick
-            disabled={loading} // Vô hiệu hóa khi đang tải
+            onClick={handleSubmit}
+            disabled={loading}
             className="bg-red-600 hover:bg-red-700 rounded-full text-white py-2 px-6 transition-all duration-300 disabled:bg-gray-400"
           >
             {loading ? "Đang lưu..." : "Lưu thay đổi"}
