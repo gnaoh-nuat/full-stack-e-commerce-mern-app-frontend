@@ -150,10 +150,10 @@ const SummaryApi = {
   },
   cancelOrder: {
     url: `${backendDomain}/api/order/`,
-    method: "patch",
+    method: "put",
   },
   vnpayReturn: {
-    url: `${backendDomain}/api/order/vnpay_return`,
+    url: `${backendDomain}/api/order/vnpay-return`,
     method: "get",
   },
 };
