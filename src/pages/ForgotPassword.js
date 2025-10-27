@@ -1,25 +1,18 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import SummaryApi from "../common"; // Đảm bảo đường dẫn này chính xác
-import { FaEye, FaEyeSlash } from "react-icons/fa";
-import loginIcons from "../assest/signin.gif"; // Đảm bảo đường dẫn này chính xác
+import SummaryApi from "../common";
+import { FaUserCircle } from "react-icons/fa";
 
 const ForgotPassword = () => {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-
-  // THAY ĐỔI 1: Thêm state mới để lưu resetToken từ backend
   const [resetToken, setResetToken] = useState("");
-
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
-  // BƯỚC 1: Gửi yêu cầu lấy OTP qua email (Không thay đổi)
   const handleSendOtp = async (e) => {
     e.preventDefault();
     try {
@@ -30,17 +23,14 @@ const ForgotPassword = () => {
       });
       const data = await response.json();
       if (data.success) {
-        toast.success(data.message);
+        toast.success(data.message || "Đã gửi mã OTP đến email của bạn!");
         setStep(2);
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      } else toast.error(data.message || "Không thể gửi OTP!");
+    } catch {
+      toast.error("Lỗi khi gửi yêu cầu!");
     }
   };
 
-  // BƯỚC 2: Xác thực OTP và nhận về resetToken
   const handleVerifyCode = async (e) => {
     e.preventDefault();
     try {
@@ -50,183 +40,147 @@ const ForgotPassword = () => {
         body: JSON.stringify({ email, otp }),
       });
       const data = await response.json();
-
       if (data.success) {
         toast.success("Xác thực OTP thành công!");
-
-        // THAY ĐỔI 2: Lấy resetToken từ response và lưu vào state
-        setResetToken(data.resetToken); // Giả sử backend trả token qua key 'resetToken'
-
-        setStep(3); // Chuyển sang bước 3
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error("Đã có lỗi xảy ra khi xác thực OTP.");
+        setResetToken(data.resetToken);
+        setStep(3);
+      } else toast.error(data.message || "Mã OTP không chính xác!");
+    } catch {
+      toast.error("Lỗi xác thực OTP!");
     }
   };
 
-  // BƯỚC 3: Đặt lại mật khẩu mới bằng resetToken
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toast.error("Mật khẩu không khớp!");
-      return;
-    }
-
+    if (newPassword !== confirmPassword)
+      return toast.error("Mật khẩu xác nhận không trùng khớp!");
     try {
       const response = await fetch(SummaryApi.resetPassword.url, {
         method: SummaryApi.resetPassword.method,
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email,
-          // THAY ĐỔI 3: Gửi 'resetToken' đã lưu thay vì 'otp'
-          resetToken: resetToken,
+          resetToken,
           newPassword,
           confirmPassword,
         }),
       });
-
       const data = await response.json();
       if (data.success) {
-        toast.success(data.message);
+        toast.success("Đặt lại mật khẩu thành công!");
         navigate("/login");
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error("Đã có lỗi xảy ra khi đặt lại mật khẩu.");
+      } else toast.error(data.message || "Không thể đặt lại mật khẩu!");
+    } catch {
+      toast.error("Lỗi khi đặt lại mật khẩu!");
     }
   };
 
   return (
-    <section id="forgot-password">
-      <div className="mx-auto container p-4">
-        <div className="bg-white p-5 w-full max-w-sm mx-auto rounded-lg shadow-md">
-          <div className="w-20 h-20 mx-auto">
-            <img src={loginIcons} alt="forgot password icon" />
-          </div>
-          <h2 className="text-center text-2xl font-bold pt-3">Quên Mật Khẩu</h2>
-
-          {/* Form cho Bước 1: Nhập Email */}
-          {step === 1 && (
-            <form className="pt-6 flex flex-col gap-2" onSubmit={handleSendOtp}>
-              <div className="grid">
-                <label>Email : </label>
-                <div className="bg-slate-100 p-2 rounded">
-                  <input
-                    type="email"
-                    placeholder="Nhập email của bạn"
-                    name="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full h-full outline-none bg-transparent"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 w-full max-w-[200px] rounded-full hover:scale-110 transition-all mx-auto block mt-6"
-              >
-                Gửi OTP
-              </button>
-            </form>
-          )}
-
-          {/* Form cho Bước 2: Nhập OTP */}
-          {step === 2 && (
-            <form
-              className="pt-6 flex flex-col gap-3"
-              onSubmit={handleVerifyCode}
-            >
-              <div className="grid">
-                <label>Mã OTP :</label>
-                <div className="bg-slate-100 p-2 rounded">
-                  <input
-                    type="text"
-                    placeholder="Nhập mã OTP đã nhận"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    required
-                    className="w-full h-full outline-none bg-transparent"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 w-full max-w-[200px] rounded-full hover:scale-110 transition-all mx-auto block mt-6"
-              >
-                Xác Thực
-              </button>
-            </form>
-          )}
-
-          {/* Form cho Bước 3: Nhập Mật Khẩu Mới */}
-          {step === 3 && (
-            <form
-              className="pt-6 flex flex-col gap-3"
-              onSubmit={handleResetPassword}
-            >
-              <div className="grid">
-                <label>Mật khẩu mới :</label>
-                <div className="bg-slate-100 p-2 flex rounded">
-                  <input
-                    type={showNewPassword ? "text" : "password"}
-                    placeholder="Nhập mật khẩu mới"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    className="w-full h-full outline-none bg-transparent"
-                  />
-                  <div
-                    className="cursor-pointer text-xl"
-                    onClick={() => setShowNewPassword((prev) => !prev)}
-                  >
-                    <span>{showNewPassword ? <FaEyeSlash /> : <FaEye />}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="grid">
-                <label>Xác nhận mật khẩu mới :</label>
-                <div className="bg-slate-100 p-2 flex rounded">
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Xác nhận mật khẩu mới"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    className="w-full h-full outline-none bg-transparent"
-                  />
-                  <div
-                    className="cursor-pointer text-xl"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  >
-                    <span>
-                      {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 w-full max-w-[200px] rounded-full hover:scale-110 transition-all mx-auto block mt-6"
-              >
-                Đặt Lại Mật Khẩu
-              </button>
-            </form>
-          )}
-
-          <p className="my-5 text-center">
-            Nhớ mật khẩu?{" "}
-            <Link
-              to={"/login"}
-              className="text-red-600 hover:text-red-700 hover:underline"
-            >
-              Đăng nhập
-            </Link>
+    <section className="flex justify-center items-center min-h-[70vh]">
+      <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8 border border-slate-200">
+        {/* Icon + Title */}
+        <div className="flex flex-col items-center text-center">
+          <FaUserCircle className="text-6xl text-red-500 mb-2" />
+          <h2 className="text-2xl font-bold text-slate-800">Quên Mật Khẩu</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            {step === 1 && "Nhập email để nhận mã OTP xác thực."}
+            {step === 2 && "Nhập mã OTP bạn đã nhận trong email."}
+            {step === 3 && "Đặt lại mật khẩu mới cho tài khoản của bạn."}
           </p>
         </div>
+
+        {/* Bước 1 */}
+        {step === 1 && (
+          <form onSubmit={handleSendOtp} className="mt-8 space-y-4">
+            <div>
+              <label className="font-medium text-slate-700">Email</label>
+              <input
+                type="email"
+                placeholder="Nhập email của bạn"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition"
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-red-600 hover:bg-red-700 text-white w-full py-2.5 rounded-full font-semibold transition-all hover:scale-[1.03]"
+            >
+              Gửi Mã OTP
+            </button>
+          </form>
+        )}
+
+        {/* Bước 2 */}
+        {step === 2 && (
+          <form onSubmit={handleVerifyCode} className="mt-8 space-y-4">
+            <div>
+              <label className="font-medium text-slate-700">Mã OTP</label>
+              <input
+                type="text"
+                placeholder="Nhập mã OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                required
+                className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition"
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-red-600 hover:bg-red-700 text-white w-full py-2.5 rounded-full font-semibold transition-all hover:scale-[1.03]"
+            >
+              Xác Thực OTP
+            </button>
+          </form>
+        )}
+
+        {/* Bước 3 */}
+        {step === 3 && (
+          <form onSubmit={handleResetPassword} className="mt-8 space-y-4">
+            <div>
+              <label className="font-medium text-slate-700">Mật khẩu mới</label>
+              <input
+                type="password"
+                placeholder="Nhập mật khẩu mới"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition"
+              />
+            </div>
+            <div>
+              <label className="font-medium text-slate-700">
+                Xác nhận mật khẩu
+              </label>
+              <input
+                type="password"
+                placeholder="Nhập lại mật khẩu"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none transition"
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-red-600 hover:bg-red-700 text-white w-full py-2.5 rounded-full font-semibold transition-all hover:scale-[1.03]"
+            >
+              Đặt Lại Mật Khẩu
+            </button>
+          </form>
+        )}
+
+        {/* Link */}
+        <p className="text-center text-sm mt-6 text-slate-600">
+          Nhớ mật khẩu?{" "}
+          <Link
+            to={"/login"}
+            className="text-red-600 font-semibold hover:underline"
+          >
+            Đăng nhập ngay
+          </Link>
+        </p>
       </div>
     </section>
   );

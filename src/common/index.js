@@ -1,6 +1,9 @@
+// Địa chỉ backend
 const backendDomain = "http://localhost:8080";
 
+// Tổng hợp các API endpoint chính
 const SummaryApi = {
+  // === AUTHENTICATION ===
   signUP: {
     url: `${backendDomain}/api/signup`,
     method: "post",
@@ -17,6 +20,8 @@ const SummaryApi = {
     url: `${backendDomain}/api/userLogout`,
     method: "get",
   },
+
+  // === USER ===
   allUser: {
     url: `${backendDomain}/api/all-user`,
     method: "get",
@@ -25,6 +30,16 @@ const SummaryApi = {
     url: `${backendDomain}/api/update-user`,
     method: "post",
   },
+  changePassword: {
+    url: `${backendDomain}/api/change-password`,
+    method: "post",
+  },
+  uploadAvatar: {
+    url: `${backendDomain}/api/upload-avatar`,
+    method: "post",
+  },
+
+  // === PRODUCT ===
   uploadProduct: {
     url: `${backendDomain}/api/upload-product`,
     method: "post",
@@ -49,6 +64,8 @@ const SummaryApi = {
     url: `${backendDomain}/api/product-details`,
     method: "post",
   },
+
+  // === CART ===
   addToCartProduct: {
     url: `${backendDomain}/api/addtocart`,
     method: "post",
@@ -70,6 +87,7 @@ const SummaryApi = {
     method: "post",
   },
 
+  // === SEARCH & FILTER ===
   searchProduct: {
     url: `${backendDomain}/api/search`,
     method: "get",
@@ -78,7 +96,8 @@ const SummaryApi = {
     url: `${backendDomain}/api/filter-product`,
     method: "post",
   },
-  //forgot password//
+
+  // === FORGOT PASSWORD ===
   forgotPassword: {
     url: `${backendDomain}/api/forgot-password`,
     method: "post",
@@ -91,7 +110,52 @@ const SummaryApi = {
     url: `${backendDomain}/api/forgot-password/verify-otp`,
     method: "post",
   },
-  ////
+
+  // === ADDRESS ===
+  createAddress: {
+    url: `${backendDomain}/api/address`,
+    method: "post",
+  },
+  getUserAddresses: {
+    url: `${backendDomain}/api/address`,
+    method: "get",
+  },
+  updateAddress: {
+    url: `${backendDomain}/api/address/`,
+    method: "put",
+  },
+  deleteAddress: {
+    url: `${backendDomain}/api/address/`,
+    method: "delete",
+  },
+
+  // === FILE / IMAGE UPLOAD ===
+  uploadImage: {
+    url: `${backendDomain}/api/upload-images`,
+    method: "post",
+  },
+
+  // === ORDER ===
+  createOrder: {
+    url: `${backendDomain}/api/order`,
+    method: "post",
+  },
+  getOrdersByStatus: {
+    url: `${backendDomain}/api/order/by-status`,
+    method: "get",
+  },
+  getOrderById: {
+    url: `${backendDomain}/api/order/`,
+    method: "get",
+  },
+  cancelOrder: {
+    url: `${backendDomain}/api/order/`,
+    method: "patch",
+  },
+  vnpayReturn: {
+    url: `${backendDomain}/api/order/vnpay_return`,
+    method: "get",
+  },
 };
 
 export default SummaryApi;

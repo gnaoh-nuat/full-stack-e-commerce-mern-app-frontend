@@ -11,6 +11,15 @@ import CategoryProduct from "../pages/CategoryProduct";
 import ProductDetails from "../pages/ProductDetails";
 import Cart from "../pages/Cart";
 import SearchProduct from "../pages/SearchProduct";
+import Profile from "../pages/Profile";
+import Address from "../pages/Address";
+import ChangePassword from "../pages/ChangePassword";
+import PersonalInfo from "../pages/PersonalInfo";
+import Checkout from "../pages/Checkout";
+import MyOrders from "../pages/MyOrders";
+import OrderSuccess from "../pages/OrderSuccess";
+import VnpayReturn from "../pages/VnpayReturn";
+import OrderDetails from "../pages/OrderDetails";
 
 const router = createBrowserRouter([
   {
@@ -50,6 +59,24 @@ const router = createBrowserRouter([
         element: <SearchProduct />,
       },
       {
+        path: "profile",
+        element: <Profile />,
+        children: [
+          {
+            path: "",
+            element: <PersonalInfo />,
+          },
+          {
+            path: "address",
+            element: <Address />,
+          },
+          {
+            path: "change-password",
+            element: <ChangePassword />,
+          },
+        ],
+      },
+      {
         path: "admin-panel",
         element: <AdminPanel />,
         children: [
@@ -62,6 +89,26 @@ const router = createBrowserRouter([
             element: <AllProducts />,
           },
         ],
+      },
+      {
+        path: "checkout",
+        element: <Checkout />,
+      },
+      {
+        path: "my-orders",
+        element: <MyOrders />,
+      },
+      {
+        path: "order-success",
+        element: <OrderSuccess />,
+      },
+      {
+        path: "order/vnpay_return", // Trang VNPAY callback
+        element: <VnpayReturn />,
+      },
+      {
+        path: "order/:id", // Trang chi tiết đơn hàng
+        element: <OrderDetails />,
       },
     ],
   },

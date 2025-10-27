@@ -1,18 +1,22 @@
-const url = `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUD_NAME_CLOUDINARY}/image/upload`
+import SummaryApi from "../common";
 
-const uploadImage  = async(image) => {
-    const formData = new FormData()
-    formData.append("file",image)
-    formData.append("upload_preset","mern_product")
-    
+const uploadImage = async (image) => {
+  try {
+    const formData = new FormData();
+    formData.append("files", image);
 
-    const dataResponse = await fetch(url,{
-        method : "post",
-        body : formData
-    })
+    const response = await fetch(SummaryApi.uploadImage.url, {
+      method: SummaryApi.uploadImage.method,
+      body: formData,
+      credentials: "include",
+    });
 
-    return dataResponse.json()
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    return { success: false, message: error.message };
+  }
+};
 
-}
-
-export default uploadImage 
+export default uploadImage;

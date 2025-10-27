@@ -16,7 +16,7 @@ import { FaAngleRight, FaAngleLeft } from "react-icons/fa6";
 const BannerProduct = () => {
   const [currentImage, setCurrentImage] = useState(0);
 
-  // SỬA 1: Dùng useRef để quản lý các bộ đếm thời gian
+  // Logic (useRef, start/stopAutoPlay, handleNavigation) giữ nguyên
   const intervalIdRef = useRef(null);
   const timeoutIdRef = useRef(null);
 
@@ -35,16 +35,15 @@ const BannerProduct = () => {
   };
 
   const startAutoPlay = () => {
-    stopAutoPlay(); // Đảm bảo không có interval nào đang chạy trước khi bắt đầu
+    stopAutoPlay();
     intervalIdRef.current = setInterval(() => {
       setCurrentImage((preve) => (preve + 1) % desktopImages.length);
-    }, 3000); // Giảm thời gian tự động chuyển xuống 3 giây
+    }, 3000);
   };
 
   const handleNavigation = (newIndex) => {
     stopAutoPlay();
     setCurrentImage(newIndex);
-    // Khởi động lại auto-play sau 5 giây không tương tác
     timeoutIdRef.current = setTimeout(startAutoPlay, 5000);
   };
 
@@ -61,32 +60,39 @@ const BannerProduct = () => {
 
   useEffect(() => {
     startAutoPlay();
-    // Dọn dẹp khi component bị hủy
     return () => stopAutoPlay();
   }, []);
 
   return (
-    <div className="container mx-auto px-4 rounded ">
-      <div className="h-56 md:h-72 w-full bg-slate-200 relative">
-        {/* Các nút điều khiển Next/Prev */}
+    // [CẬP NHẬT] Bỏ `rounded` ở đây
+    <div className="container mx-auto px-4">
+      {/* [CẬP NHẬT] 
+          - Thêm `rounded-lg` và `overflow-hidden` để bo góc banner.
+          - `bg-slate-200` vẫn giữ làm màu nền chờ tải.
+      */}
+      <div className="h-56 md:h-72 w-full bg-slate-200 relative rounded-lg overflow-hidden">
+        {/* [CẬP NHẬT] Các nút điều khiển Next/Prev */}
         <div className="absolute z-10 h-full w-full md:flex items-center hidden ">
-          <div className="flex justify-between w-full text-2xl px-4">
+          {/* [CẬP NHẬT] Tăng `px-4` -> `px-6` để lùi nút vào trong */}
+          <div className="flex justify-between w-full text-2xl px-6">
             <button
               onClick={preveImage}
-              className="bg-white shadow-md rounded-full p-1"
+              // [CẬP NHẬT] Thêm `p-2`, `bg-white/80`, `backdrop-blur-sm`
+              className="bg-white/80 backdrop-blur-sm shadow-md rounded-full p-2 text-slate-700 hover:bg-white transition-colors"
             >
               <FaAngleLeft />
             </button>
             <button
               onClick={nextImage}
-              className="bg-white shadow-md rounded-full p-1"
+              // [CẬP NHẬT] Thêm `p-2`, `bg-white/80`, `backdrop-blur-sm`
+              className="bg-white/80 backdrop-blur-sm shadow-md rounded-full p-2 text-slate-700 hover:bg-white transition-colors"
             >
               <FaAngleRight />
             </button>
           </div>
         </div>
 
-        {/* Container cho ảnh (Desktop) */}
+        {/* Container cho ảnh (Desktop) - Giữ nguyên */}
         <div className="hidden md:flex h-full w-full overflow-hidden">
           {desktopImages.map((imageURl, index) => (
             <div
@@ -94,12 +100,16 @@ const BannerProduct = () => {
               key={"desktop" + index}
               style={{ transform: `translateX(-${currentImage * 100}%)` }}
             >
-              <img src={imageURl} className="w-full h-full object-cover" />
+              <img
+                src={imageURl}
+                className="w-full h-full object-cover"
+                alt={`Banner ${index + 1}`}
+              />
             </div>
           ))}
         </div>
 
-        {/* Container cho ảnh (Mobile) */}
+        {/* Container cho ảnh (Mobile) - Giữ nguyên */}
         <div className="flex h-full w-full overflow-hidden md:hidden">
           {mobileImages.map((imageURl, index) => (
             <div
@@ -107,19 +117,29 @@ const BannerProduct = () => {
               key={"mobile" + index}
               style={{ transform: `translateX(-${currentImage * 100}%)` }}
             >
-              <img src={imageURl} className="w-full h-full object-cover" />
+              <img
+                src={imageURl}
+                className="w-full h-full object-cover"
+                alt={`Mobile Banner ${index + 1}`}
+              />
             </div>
           ))}
         </div>
 
-        {/* SỬA 2: Thêm các nút chỉ báo (Indicator Dots) */}
+        {/* [CẬP NHẬT] Các nút chỉ báo (Indicator Dots/Pills) */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
           {desktopImages.map((_, index) => (
             <button
               key={"indicator" + index}
               onClick={() => handleNavigation(index)}
-              className={`h-3 w-3 rounded-full ${
-                currentImage === index ? "bg-red-600" : "bg-slate-300"
+              // [CẬP NHẬT] Thay đổi style:
+              // - h-3/w-3 -> h-2.5
+              // - active: w-6 (dài ra)
+              // - inactive: w-2.5 (chấm tròn), bg-white/70 (trắng mờ)
+              className={`h-2.5 rounded-full transition-all duration-300 ease-out ${
+                currentImage === index
+                  ? "w-6 bg-red-600"
+                  : "w-2.5 bg-white/70 backdrop-blur-sm"
               }`}
             ></button>
           ))}
