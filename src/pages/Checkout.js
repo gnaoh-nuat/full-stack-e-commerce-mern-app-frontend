@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import SummaryApi from "../common";
+import SummaryApi from "../common"; // Đảm bảo đường dẫn này đúng
 import displayVNDCurrency from "../helpers/displayCurrency";
 import { toast } from "react-toastify";
+// [THÊM MỚI NẾU BẠN DÙNG REDUX ĐỂ ĐẾM GIỎ HÀNG]
+// import { useDispatch } from 'react-redux';
+// import { fetchAddToCartProductCount } from '../store/cartSlice';
 
 // (Component CheckoutLoading... không đổi)
 const CheckoutLoading = () => (
@@ -11,23 +14,22 @@ const CheckoutLoading = () => (
   </div>
 );
 
-// *** THÊM MỚI: Component Modal Địa chỉ ***
+// (Component AddressModal... không đổi)
 const AddressModal = ({
   isOpen,
   onClose,
   addresses,
   selectedAddressId,
-  onSelectAddress, // Dùng cho Thay đổi loại 1
-  onSetDefault, // Dùng cho Thay đổi loại 2
+  onSelectAddress,
+  onSetDefault,
   loading,
 }) => {
   if (!isOpen) return null;
-
   return (
-    // Lớp phủ
+    // ... (Code của Modal giữ nguyên như bạn đã cung cấp)
     <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
-      {/* Nội dung Modal */}
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+        {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="text-xl font-semibold">Chọn Địa Chỉ Giao Hàng</h3>
           <button
@@ -37,8 +39,7 @@ const AddressModal = ({
             &times;
           </button>
         </div>
-
-        {/* Danh sách địa chỉ */}
+        {/* Body */}
         <div className="p-4 space-y-4 overflow-y-auto">
           {loading ? (
             <p>Đang tải...</p>
@@ -52,7 +53,6 @@ const AddressModal = ({
                     : "border-slate-300"
                 }`}
               >
-                {/* === THAY ĐỔI LOẠI 1: Nút tích chọn cho đơn hàng === */}
                 <input
                   type="radio"
                   name="modalAddress"
@@ -61,7 +61,6 @@ const AddressModal = ({
                   onChange={() => onSelectAddress(address._id)}
                   className="w-5 h-5 text-red-600 flex-shrink-0"
                 />
-
                 <div className="ml-4 flex-1">
                   <p className="font-semibold text-lg flex items-center">
                     {address.name}
@@ -72,12 +71,8 @@ const AddressModal = ({
                     )}
                   </p>
                   <p className="text-slate-600">{address.phone}</p>
-                  <p className="text-slate-600">
-                    {address.addressDetail} {/* */}
-                  </p>
+                  <p className="text-slate-600">{address.addressDetail}</p>
                 </div>
-
-                {/* === THAY ĐỔI LOẠI 2: Nút đặt làm mặc định === */}
                 {!address.isDefault && (
                   <button
                     onClick={(e) => {
@@ -94,7 +89,7 @@ const AddressModal = ({
             ))
           )}
         </div>
-
+        {/* Footer */}
         <div className="p-4 border-t bg-gray-50 text-right">
           <button
             onClick={onClose}
@@ -111,6 +106,8 @@ const AddressModal = ({
 const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  // [THÊM MỚI NẾU BẠN DÙNG REDUX]
+  // const dispatch = useDispatch();
 
   const [items, setItems] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -119,8 +116,6 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [loading, setLoading] = useState(true);
   const [orderLoading, setOrderLoading] = useState(false);
-
-  // *** THÊM MỚI: State cho Modal ***
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   useEffect(() => {
@@ -133,24 +128,19 @@ const Checkout = () => {
     }
   }, [location.state, navigate]);
 
-  // *** THAY ĐỔI: Tách hàm fetchAddresses ra (dùng useCallback) ***
   const fetchAddresses = useCallback(async () => {
+    // ... (Hàm fetchAddresses giữ nguyên)
     setLoading(true);
     try {
       const response = await fetch(SummaryApi.getUserAddresses.url, {
-        //
         method: SummaryApi.getUserAddresses.method,
         credentials: "include",
       });
       const responseData = await response.json();
-
       if (responseData.success) {
         const fetchedAddresses = responseData.data || [];
         setAddresses(fetchedAddresses);
-
-        // Backend đã sắp xếp isDefault lên đầu
         if (fetchedAddresses.length > 0) {
-          // Tự động chọn địa chỉ đầu tiên (mặc định)
           setSelectedAddressId(fetchedAddresses[0]._id);
         }
       } else {
@@ -161,57 +151,43 @@ const Checkout = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // useCallback
+  }, []);
 
   useEffect(() => {
     fetchAddresses();
   }, [fetchAddresses]);
 
-  // *** THÊM MỚI: Hàm xử lý Thay đổi loại 2 (Đặt làm mặc định) ***
   const handleSetDefaultAddress = async (addressId) => {
+    // ... (Hàm handleSetDefaultAddress giữ nguyên)
     const currentDefault = addresses.find((addr) => addr.isDefault);
-
-    // Bật loading (có thể dùng loading riêng cho modal)
     setLoading(true);
-
     try {
       const apiCalls = [];
-
-      // 1. Cập nhật địa chỉ MỚI thành mặc định (isDefault: true)
       apiCalls.push(
         fetch(`${SummaryApi.updateAddress.url}${addressId}`, {
-          //
           method: SummaryApi.updateAddress.method,
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ isDefault: true }), //
+          body: JSON.stringify({ isDefault: true }),
         }).then((res) => res.json())
       );
-
-      // 2. Nếu có địa chỉ mặc định CŨ, cập nhật nó thành (isDefault: false)
       if (currentDefault && currentDefault._id !== addressId) {
         apiCalls.push(
           fetch(`${SummaryApi.updateAddress.url}${currentDefault._id}`, {
-            //
             method: SummaryApi.updateAddress.method,
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ isDefault: false }), //
+            body: JSON.stringify({ isDefault: false }),
           }).then((res) => res.json())
         );
       }
-
       const results = await Promise.all(apiCalls);
       if (results.some((res) => !res.success)) {
         throw new Error(
           results.find((res) => !res.success)?.message || "Cập nhật thất bại"
         );
       }
-
       toast.success("Đã cập nhật địa chỉ mặc định!");
-
-      // Tải lại danh sách (đã bao gồm setLoading(false))
-      // và tự động chọn địa chỉ mới làm mặc định
       await fetchAddresses();
     } catch (err) {
       toast.error("Lỗi khi cập nhật: " + err.message);
@@ -219,13 +195,17 @@ const Checkout = () => {
     }
   };
 
+  // =================================================================
+  // === *** HÀM ĐÃ ĐƯỢC CẬP NHẬT *** ===
+  // =================================================================
   const handlePlaceOrder = async () => {
-    // (Logic handlePlaceOrder không thay đổi so với file bạn cung cấp)
     if (!selectedAddressId) {
       toast.error("Vui lòng chọn địa chỉ giao hàng.");
       return;
     }
     setOrderLoading(true);
+
+    // Chuẩn bị payload cho đơn hàng (không đổi)
     const transformedProducts = items.map((item) => ({
       productId: item.productId._id,
       quantity: item.quantity,
@@ -235,9 +215,10 @@ const Checkout = () => {
       paymentMethod: paymentMethod,
       products: transformedProducts,
     };
+
     try {
+      // 1. Tạo đơn hàng (không đổi)
       const response = await fetch(SummaryApi.createOrder.url, {
-        //
         method: SummaryApi.createOrder.method,
         headers: {
           "Content-Type": "application/json",
@@ -246,7 +227,38 @@ const Checkout = () => {
         body: JSON.stringify(payload),
       });
       const responseData = await response.json();
+
+      // 2. Xử lý kết quả
       if (responseData.success) {
+        // ======================================================
+        // *** BẮT ĐẦU CODE MỚI: Xóa sản phẩm khỏi giỏ hàng ***
+        // ======================================================
+
+        // Tạo một mảng các promise để xóa từng sản phẩm
+        // 'items' là mảng sản phẩm từ location.state
+        // 'item._id' chính là 'addToCartProductId' mà backend cần
+        const deletePromises = items.map((item) => {
+          return fetch(SummaryApi.deleteCartProduct.url, {
+            method: SummaryApi.deleteCartProduct.method,
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ _id: item._id }), // Gửi ID của cart item
+          });
+        });
+
+        // Chờ tất cả các API xóa hoàn thành
+        await Promise.all(deletePromises);
+
+        // (Tùy chọn) Cập nhật lại số lượng giỏ hàng trên Header (nếu dùng Redux)
+        // dispatch(fetchAddToCartProductCount());
+
+        // ======================================================
+        // *** KẾT THÚC CODE MỚI ***
+        // ======================================================
+
+        // 3. Điều hướng (không đổi)
         if (paymentMethod === "CASH") {
           navigate("/order-success", {
             state: { orderId: responseData.data._id },
@@ -267,25 +279,24 @@ const Checkout = () => {
       setOrderLoading(false);
     }
   };
+  // =================================================================
+  // === HẾT PHẦN CẬP NHẬT
+  // =================================================================
 
   if (loading && addresses.length === 0) {
     return <CheckoutLoading />;
   }
 
-  // Lấy chi tiết địa chỉ đang được chọn để hiển thị
   const selectedAddress = addresses.find((a) => a._id === selectedAddressId);
 
   return (
     <>
-      {/* === THÊM MỚI: Gọi Modal === */}
       <AddressModal
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}
         addresses={addresses}
         selectedAddressId={selectedAddressId}
-        // Thay đổi loại 1: Chỉ cần set state
         onSelectAddress={(addressId) => setSelectedAddressId(addressId)}
-        // Thay đổi loại 2: Gọi API
         onSetDefault={handleSetDefaultAddress}
         loading={loading}
       />
@@ -296,14 +307,13 @@ const Checkout = () => {
         </h1>
         <div className="flex flex-col lg:flex-row gap-10">
           {/* ==========================
-              CỘT BÊN TRÁI (CHỌN ĐỊA CHỈ & THANH TOÁN)
+            CỘT BÊN TRÁI (CHỌN ĐỊA CHỈ & THANH TOÁN)
           ========================== */}
           <div className="w-full lg:w-2/3 space-y-8">
-            {/* --- Phần Chọn Địa Chỉ (ĐÃ THAY ĐỔI) --- */}
+            {/* --- Phần Chọn Địa Chỉ --- */}
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-semibold">1. Địa Chỉ Giao Hàng</h2>
-                {/* Nút mở Modal */}
                 <button
                   onClick={() => setIsAddressModalOpen(true)}
                   className="text-red-600 font-medium hover:underline"
@@ -312,7 +322,6 @@ const Checkout = () => {
                 </button>
               </div>
 
-              {/* === THAY ĐỔI: Chỉ hiển thị địa chỉ đã chọn === */}
               {selectedAddress ? (
                 <div className="flex items-center p-4 border rounded-lg border-slate-300">
                   <div className="ml-4">
@@ -326,12 +335,11 @@ const Checkout = () => {
                     </p>
                     <p className="text-slate-600">{selectedAddress.phone}</p>
                     <p className="text-slate-600">
-                      {selectedAddress.addressDetail} {/* */}
+                      {selectedAddress.addressDetail}
                     </p>
                   </div>
                 </div>
               ) : (
-                // Trường hợp không có địa chỉ nào
                 <div className="p-4 border rounded-lg border-slate-300">
                   <p className="text-slate-500">
                     Bạn chưa có địa chỉ nào. Vui lòng
@@ -347,13 +355,13 @@ const Checkout = () => {
               )}
             </div>
 
-            {/* --- Phần Chọn Phương Thức Thanh Toán (Không đổi) --- */}
+            {/* --- Phần Chọn Phương Thức Thanh Toán --- */}
             <div>
               <h2 className="text-2xl font-semibold mb-4">
                 2. Chọn Phương Thức Thanh Toán
               </h2>
               <div className="space-y-4">
-                {/* (label cho CASH và VNPAY không đổi) */}
+                {/* (label cho CASH) */}
                 <label
                   className={`flex items-center p-4 border rounded-lg cursor-pointer ${
                     paymentMethod === "CASH"
@@ -379,6 +387,7 @@ const Checkout = () => {
                   </div>
                 </label>
 
+                {/* (label cho VNPAY) */}
                 <label
                   className={`flex items-center p-4 border rounded-lg cursor-pointer ${
                     paymentMethod === "VNPAY"
@@ -409,11 +418,10 @@ const Checkout = () => {
           </div>
 
           {/* ==========================
-              CỘT BÊN PHẢI (TÓM TẮT ĐƠN HÀNG)
+            CỘT BÊN PHẢI (TÓM TẮT ĐƠN HÀNG)
           ========================== */}
           <div className="w-full lg:w-1/3 lg:sticky lg:top-4 h-fit">
             <div className="bg-white rounded-lg border border-slate-300 shadow-md">
-              {/* (Nội dung tóm tắt đơn hàng không đổi) */}
               <h2 className="text-xl font-semibold p-4 border-b">
                 Tóm Tắt Đơn Hàng
               </h2>
@@ -455,8 +463,6 @@ const Checkout = () => {
                   <span>Tổng Thanh Toán</span>
                   <span>{displayVNDCurrency(totalAmount)}</span>
                 </div>
-
-                {/* Nút đặt hàng (đã sửa text) */}
                 <button
                   onClick={handlePlaceOrder}
                   disabled={orderLoading || addresses.length === 0}
