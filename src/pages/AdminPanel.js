@@ -1,7 +1,13 @@
 import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 // [SỬA LỖI] Thay đổi import từ 'fa' thành 'fa6'
-import { FaRegCircleUser, FaUsers, FaBox } from "react-icons/fa6";
+// VÀ THÊM ICON FaListUl
+import {
+  FaRegCircleUser,
+  FaUsers,
+  FaBox,
+  FaListUl, // <-- THÊM ICON NÀY
+} from "react-icons/fa6";
 import { Link, Outlet, useNavigate, NavLink } from "react-router-dom";
 import ROLE from "../common/role";
 
@@ -70,6 +76,10 @@ const AdminPanel = () => {
             <FaBox />
             All Products
           </NavLink>
+          <NavLink to={"all-orders"} className={getDesktopNavLinkClass}>
+            <FaListUl />
+            All Orders
+          </NavLink>
         </nav>
       </aside>
 
@@ -80,6 +90,9 @@ const AdminPanel = () => {
         </NavLink>
         <NavLink to={"all-products"} className={getMobileNavLinkClass}>
           All Products
+        </NavLink>
+        <NavLink to={"all-orders"} className={getMobileNavLinkClass}>
+          All Orders
         </NavLink>
       </nav>
 

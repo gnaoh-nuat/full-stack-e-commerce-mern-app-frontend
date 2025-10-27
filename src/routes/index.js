@@ -20,6 +20,7 @@ import MyOrders from "../pages/MyOrders";
 import OrderSuccess from "../pages/OrderSuccess";
 import VnpayReturn from "../pages/VnpayReturn";
 import OrderDetails from "../pages/OrderDetails";
+import AllOrders from "../pages/AllOrders";
 
 const router = createBrowserRouter([
   {
@@ -87,6 +88,10 @@ const router = createBrowserRouter([
           {
             path: "all-products",
             element: <AllProducts />,
+          },
+          {
+            path: "all-orders",
+            element: <AllOrders />,
           },
         ],
       },

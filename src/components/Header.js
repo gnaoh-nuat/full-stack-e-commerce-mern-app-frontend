@@ -167,7 +167,7 @@ const Header = () => {
 
                     {user?.role === ROLE.ADMIN && (
                       <Link
-                        to="/admin-panel/all-products"
+                        to="/admin-panel/all-users"
                         className="whitespace-nowrap hover:bg-slate-100 p-2 block rounded-md"
                         onClick={() => setMenuDisplay(false)}
                       >

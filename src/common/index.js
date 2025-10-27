@@ -156,6 +156,10 @@ const SummaryApi = {
     url: `${backendDomain}/api/order/vnpay-return`,
     method: "get",
   },
+  getAllOrders: {
+    url: `${backendDomain}/api/all-orders`,
+    method: "get",
+  },
 };
 
 export default SummaryApi;
