@@ -3,12 +3,35 @@ import UploadProduct from "../components/UploadProduct";
 import SummaryApi from "../common";
 import AdminProductCard from "../components/AdminProductCard";
 import AdminEditProduct from "../components/AdminEditProduct";
-import { FaPlus, FaFilter } from "react-icons/fa"; // Thêm icon
-import { IoSearch } from "react-icons/io5"; // Thêm icon search
+import { FaPlus, FaFilter } from "react-icons/fa";
+import { IoSearch } from "react-icons/io5";
+
+// --- COMPONENT SKELETON (ĐỂ HIỂN THỊ KHI TẢI) ---
+// Bạn có thể đặt component này ở file riêng và import vào
+const AdminProductCardSkeleton = () => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-4 w-full max-w-[280px] min-w-[280px] animate-pulse">
+      {/* Skeleton cho hình ảnh */}
+      <div className="w-32 h-32 bg-slate-200 mx-auto rounded"></div>
+      {/* Skeleton cho tên sản phẩm */}
+      <div className="h-4 bg-slate-200 rounded mt-4 w-3/4 mx-auto"></div>
+      {/* Skeleton cho giá */}
+      <div className="h-3 bg-slate-200 rounded mt-3 w-1/2 mx-auto"></div>
+      {/* Skeleton cho 2 nút Edit/Delete */}
+      <div className="flex justify-between items-center mt-5">
+        <div className="h-8 w-16 bg-slate-200 rounded"></div>
+        <div className="h-8 w-16 bg-slate-200 rounded"></div>
+      </div>
+    </div>
+  );
+};
+// ---------------------------------------------------
 
 const AllProducts = () => {
   const [openUploadProduct, setOpenUploadProduct] = useState(false);
   const [allProduct, setAllProduct] = useState([]);
+  const [isLoading, setIsLoading] = useState(true); // <-- THAY ĐỔI: Thêm state loading
+  const [refreshKey, setRefreshKey] = useState(0); // <-- THAY ĐỔI: State để trigger fetch lại data
 
   const [openEditProduct, setOpenEditProduct] = useState(false);
   const [editProductData, setEditProductData] = useState(null);
@@ -19,43 +42,31 @@ const AllProducts = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
 
-  const fetchAllProduct = async () => {
-    const response = await fetch(SummaryApi.allProduct.url);
-    const dataResponse = await response.json();
-    const products = dataResponse?.data || [];
-    setAllProduct(products);
+  // <-- THAY ĐỔI: Xóa hàm fetchAllProduct riêng và gộp logic vào useEffect bên dưới
+  // <-- THAY ĐỔI: Xóa useEffect[] cũ (tránh fetch 2 lần khi tải trang)
 
-    // Tự động lấy danh sách category từ sản phẩm
-    if (products.length > 0 && availableCategories.length === 0) {
-      const categories = [
-        ...new Set(products.map((product) => product.category)),
-      ];
-      setAvailableCategories(categories.sort());
-    }
+  // --- Hàm refetch data (dùng cho Upload, Edit, Delete) ---
+  const refetchData = () => {
+    setRefreshKey((prev) => prev + 1); // <-- THAY ĐỔI: Chỉ cần thay đổi key này là useEffect bên dưới sẽ chạy lại
   };
 
+  // --- useEffect chính để xử lý TẤT CẢ việc fetch data ---
   useEffect(() => {
-    fetchAllProduct();
-  }, []); // Chỉ chạy 1 lần lúc tải trang
-
-  // --- useEffect mới để xử lý Tìm kiếm và Lọc ---
-  useEffect(() => {
-    // Sử dụng debounce để tránh gọi API liên tục khi gõ
     const timer = setTimeout(async () => {
+      setIsLoading(true); // <-- THAY ĐỔI: Bắt đầu loading
       try {
+        let response;
         if (searchQuery) {
           // --- Logic TÌM KIẾM ---
-          const response = await fetch(
+          response = await fetch(
             `${SummaryApi.searchProduct.url}?q=${searchQuery}`,
             {
               method: SummaryApi.searchProduct.method,
             }
           );
-          const dataResponse = await response.json();
-          setAllProduct(dataResponse?.data || []);
         } else if (selectedCategories.length > 0) {
           // --- Logic LỌC ---
-          const response = await fetch(SummaryApi.filterProduct.url, {
+          response = await fetch(SummaryApi.filterProduct.url, {
             method: SummaryApi.filterProduct.method,
             headers: {
               "content-type": "application/json",
@@ -64,20 +75,37 @@ const AllProducts = () => {
               category: selectedCategories,
             }),
           });
-          const dataResponse = await response.json();
-          setAllProduct(dataResponse?.data || []);
         } else {
-          // --- Logic RESET (nếu không tìm kiếm hoặc lọc) ---
-          fetchAllProduct();
+          // --- Logic LẤY TẤT CẢ SẢN PHẨM (cho lần tải đầu hoặc khi reset) ---
+          response = await fetch(SummaryApi.allProduct.url);
+        }
+
+        const dataResponse = await response.json();
+        const products = dataResponse?.data || [];
+        setAllProduct(products);
+
+        // Tự động lấy danh sách category (chỉ khi lấy tất cả sản phẩm)
+        if (
+          !searchQuery &&
+          selectedCategories.length === 0 &&
+          products.length > 0
+        ) {
+          const categories = [
+            ...new Set(products.map((product) => product.category)),
+          ];
+          setAvailableCategories(categories.sort());
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+        setAllProduct([]); // Đảm bảo mảng rỗng nếu có lỗi
+      } finally {
+        setIsLoading(false); // <-- THAY ĐỔI: Tải xong (dù thành công hay lỗi)
       }
     }, 300); // 300ms debounce
 
     // Cleanup function
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedCategories]); // Chạy lại khi 2 state này thay đổi
+  }, [searchQuery, selectedCategories, refreshKey]); // <-- THAY ĐỔI: Thêm refreshKey
 
   // --- Hàm xử lý thay đổi cho Tìm kiếm ---
   const handleSearchChange = (e) => {
@@ -117,7 +145,8 @@ const AllProducts = () => {
       <div className="bg-white py-4 px-6 border-b border-slate-200">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold text-2xl text-slate-800">
-            All Products ({allProduct.length})
+            {/* <-- THAY ĐỔI: Không hiển thị count khi đang loading */}
+            All Products {isLoading ? "" : `(${allProduct.length})`}
           </h2>
           <button
             className="flex items-center gap-2 bg-red-600 text-white hover:bg-red-700 transition-all py-2 px-4 rounded-lg shadow-md"
@@ -188,23 +217,25 @@ const AllProducts = () => {
       </div>
 
       {/**all product */}
+      {/* <-- THAY ĐỔI: Cập nhật logic render với isLoading --> */}
       <div className="flex flex-wrap gap-5 p-6 h-[calc(100vh-190px)] overflow-y-auto">
-        {allProduct.length > 0 ? (
+        {isLoading ? (
+          // Hiển thị 8 Skeleton Card khi đang tải
+          Array(8)
+            .fill(null)
+            .map((_, index) => <AdminProductCardSkeleton key={index} />)
+        ) : allProduct.length > 0 ? (
+          // Hiển thị sản phẩm khi tải xong và có dữ liệu
           allProduct.map((product, index) => (
             <AdminProductCard
               data={product}
-              key={product._id || index} // Nên dùng _id làm key
-              fetchdata={
-                searchQuery
-                  ? () => {}
-                  : selectedCategories.length
-                  ? () => {}
-                  : fetchAllProduct
-              }
+              key={product._id || index}
+              fetchdata={refetchData} // <-- THAY ĐỔI
               onEdit={handleOpenEditModal}
             />
           ))
         ) : (
+          // Hiển thị thông báo khi tải xong và không có dữ liệu
           <p className="text-slate-500 w-full text-center mt-10">
             No products found.
           </p>
@@ -215,7 +246,7 @@ const AllProducts = () => {
       {openUploadProduct && (
         <UploadProduct
           onClose={() => setOpenUploadProduct(false)}
-          fetchData={fetchAllProduct}
+          fetchData={refetchData} // <-- THAY ĐỔI
         />
       )}
 
@@ -224,13 +255,7 @@ const AllProducts = () => {
         <AdminEditProduct
           productData={editProductData}
           onClose={() => setOpenEditProduct(false)}
-          fetchdata={
-            searchQuery
-              ? () => {}
-              : selectedCategories.length
-              ? () => {}
-              : fetchAllProduct
-          }
+          fetchdata={refetchData} // <-- THAY ĐỔI
         />
       )}
     </div>
