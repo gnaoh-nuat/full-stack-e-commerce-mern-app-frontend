@@ -65,24 +65,32 @@ const Footer = () => {
 
           {/* Cột 3: Hỗ trợ khách hàng */}
           <div className="space-y-4">
-            <h3 className="font-bold text-lg text-white mb-2">Hỗ trợ</h3>
+            <h3 className="font-bold text-lg text-white mb-2">
+              {/* Cập nhật link tiêu đề */}
+              <Link to="/support" className="hover:text-white hover:underline">
+                Hỗ trợ
+              </Link>
+            </h3>
             <ul className="space-y-2">
               <li>
                 <Link
-                  to="/contact"
+                  to="/support/contact" // <-- Cập nhật
                   className="hover:text-white hover:underline"
                 >
                   Liên hệ
                 </Link>
               </li>
               <li>
-                <Link to="/faq" className="hover:text-white hover:underline">
+                <Link
+                  to="/support/faq" // <-- Cập nhật
+                  className="hover:text-white hover:underline"
+                >
                   Câu hỏi thường gặp (FAQs)
                 </Link>
               </li>
               <li>
                 <Link
-                  to="/shipping-policy"
+                  to="/support/shipping-policy" // <-- Cập nhật
                   className="hover:text-white hover:underline"
                 >
                   Chính sách vận chuyển
@@ -90,7 +98,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/return-policy"
+                  to="/support/return-policy" // <-- Cập nhật
                   className="hover:text-white hover:underline"
                 >
                   Chính sách đổi trả
@@ -98,7 +106,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/privacy-policy"
+                  to="/support/privacy-policy" // <-- Cập nhật
                   className="hover:text-white hover:underline"
                 >
                   Chính sách bảo mật

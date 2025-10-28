@@ -21,6 +21,13 @@ import OrderSuccess from "../pages/OrderSuccess";
 import VnpayReturn from "../pages/VnpayReturn";
 import OrderDetails from "../pages/OrderDetails";
 import AllOrders from "../pages/AllOrders";
+import Contact from "../pages/Contact";
+import FAQ from "../pages/FAQ";
+import ReturnPolicy from "../pages/ReturnPolicy";
+import PrivacyPolicy from "../pages/PrivacyPolicy";
+import ShippingPolicy from "../pages/ShippingPolicy";
+import SupportHome from "../pages/SupportHome";
+import SupportLayout from "../pages/SupportLayout";
 
 const router = createBrowserRouter([
   {
@@ -114,6 +121,36 @@ const router = createBrowserRouter([
       {
         path: "order/:id", // Trang chi tiết đơn hàng
         element: <OrderDetails />,
+      },
+      {
+        path: "support",
+        element: <SupportLayout />, // Dùng layout cha
+        children: [
+          {
+            path: "", // Đường dẫn mặc định: /support
+            element: <SupportHome />, // Trang menu chính
+          },
+          {
+            path: "contact", // Đường dẫn: /support/contact
+            element: <Contact />,
+          },
+          {
+            path: "faq", // Đường dẫn: /support/faq
+            element: <FAQ />,
+          },
+          {
+            path: "shipping-policy", // Đường dẫn: /support/shipping-policy
+            element: <ShippingPolicy />,
+          },
+          {
+            path: "return-policy", // Đường dẫn: /support/return-policy
+            element: <ReturnPolicy />,
+          },
+          {
+            path: "privacy-policy", // Đường dẫn: /support/privacy-policy
+            element: <PrivacyPolicy />,
+          },
+        ],
       },
     ],
   },
