@@ -160,6 +160,24 @@ const SummaryApi = {
     url: `${backendDomain}/api/all-orders`,
     method: "get",
   },
+
+  // === REVIEW ===
+  getProductReviews: {
+    url: `${backendDomain}/api/review/product`,
+    method: "get",
+  },
+  addReview: {
+    url: `${backendDomain}/api/add-review`,
+    method: "post",
+  },
+  updateReview: {
+    url: `${backendDomain}/api/update-review`,
+    method: "put",
+  },
+  deleteReview: {
+    url: `${backendDomain}/api/delete-review`,
+    method: "delete",
+  },
 };
 
 export default SummaryApi;
