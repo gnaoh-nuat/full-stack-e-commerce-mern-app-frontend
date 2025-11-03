@@ -1,18 +1,16 @@
-// src/components/ScrollToTop.js
+// src/helpers/scrollTop.js (hoặc nơi bạn lưu file)
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 const ScrollToTop = () => {
-  // Lấy ra `pathname` (ví dụ: "/contact", "/search") từ URL
-  const { pathname } = useLocation();
+  // Lấy ra `key` thay vì `pathname`
+  // `key` là một giá trị duy nhất được tạo ra cho MỖI LẦN điều hướng.
+  const { key } = useLocation();
 
-  // Sử dụng useEffect để thực hiện một hành động mỗi khi `pathname` thay đổi
   useEffect(() => {
-    // Cuộn cửa sổ trình duyệt về vị trí (0, 0) ngay lập tức
-    // Dùng (0, 0) sẽ tốt hơn 'smooth' vì nó tức thì,
-    // người dùng không thấy trang bị cuộn.
+    // Cuộn cửa sổ trình duyệt về vị trí (0, 0)
     window.scrollTo(0, 0);
-  }, [pathname]); // <-- Dependency array: Chạy lại effect này khi pathname thay đổi
+  }, [key]); // <-- Thay đổi dependency thành [key]
 
   // Component này không render ra bất cứ thứ gì
   return null;
