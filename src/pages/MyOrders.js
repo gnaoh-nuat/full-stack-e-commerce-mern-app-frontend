@@ -4,6 +4,10 @@ import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import displayVNDCurrency from "../helpers/displayCurrency";
 import { FaStar } from "react-icons/fa";
+import { useSearchParams } from "react-router-dom";
+
+// Import helper tải ảnh
+import uploadImage from "../helpers/uploadImage";
 
 // TABS không đổi
 const TABS = [
@@ -30,7 +34,10 @@ const getStatusProps = (status) => {
 };
 
 const MyOrders = () => {
-  const [activeTab, setActiveTab] = useState(TABS[0].status);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") || TABS[0].status;
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -40,9 +47,11 @@ const MyOrders = () => {
   const [reviewForm, setReviewForm] = useState({
     rating: 5,
     comment: "",
-    reviewImages: [],
   });
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // State để lưu các file người dùng chọn (File objects)
+  const [uploadFiles, setUploadFiles] = useState([]);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -77,17 +86,31 @@ const MyOrders = () => {
   const handleOpenReviewModal = (product) => {
     setReviewingProduct(product);
     setShowReviewModal(true);
-    setReviewForm({ rating: 5, comment: "", reviewImages: [] });
+    setReviewForm({ rating: 5, comment: "" });
+    setUploadFiles([]); // Reset file khi mở modal
   };
 
   // Handle close review modal
   const handleCloseReviewModal = () => {
     setShowReviewModal(false);
     setReviewingProduct(null);
-    setReviewForm({ rating: 5, comment: "", reviewImages: [] });
+    setReviewForm({ rating: 5, comment: "" });
+    setUploadFiles([]); // Reset file khi đóng modal
   };
 
-  // Handle submit review
+  // Handle file change
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    // Giới hạn số lượng file (ví dụ: 5)
+    if (files.length > 5) {
+      toast.error("Bạn chỉ có thể tải lên tối đa 5 ảnh.");
+      setUploadFiles(files.slice(0, 5));
+    } else {
+      setUploadFiles(files);
+    }
+  };
+
+  // Handle submit review (Sử dụng helper)
   const handleSubmitReview = async (e) => {
     e.preventDefault();
 
@@ -97,19 +120,45 @@ const MyOrders = () => {
     }
 
     setSubmittingReview(true);
+    let uploadedImageUrls = []; // Mảng chứa URL sau khi upload
+
     try {
+      // BƯỚC 1: Tải ảnh lên (nếu có)
+      if (uploadFiles.length > 0) {
+        // Tạo một mảng các promise, mỗi promise là một lệnh gọi uploadImage
+        const uploadPromises = uploadFiles.map((file) => uploadImage(file));
+
+        // Đợi tất cả các file upload xong
+        const uploadResults = await Promise.all(uploadPromises);
+
+        // Kiểm tra xem có upload nào thất bại không
+        const failedUploads = uploadResults.filter((res) => !res.success);
+        if (failedUploads.length > 0) {
+          throw new Error(
+            failedUploads[0].message || "Một trong các file tải lên bị lỗi"
+          );
+        }
+
+        // Lấy URL từ kết quả
+        // Giả định rằng fileController trả về { result: [{ imageUrl: '...' }] }
+        uploadedImageUrls = uploadResults.map((res) => res.result[0].imageUrl);
+      }
+
+      // BƯỚC 2: Gửi đánh giá (với các URL ảnh đã upload)
+      const reviewPayload = {
+        product: reviewingProduct._id,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+        reviewImages: uploadedImageUrls, // Gửi mảng URL
+      };
+
       const response = await fetch(SummaryApi.addReview.url, {
         method: SummaryApi.addReview.method,
         credentials: "include",
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({
-          product: reviewingProduct._id,
-          rating: reviewForm.rating,
-          comment: reviewForm.comment,
-          reviewImages: reviewForm.reviewImages,
-        }),
+        body: JSON.stringify(reviewPayload),
       });
 
       const result = await response.json();
@@ -117,12 +166,13 @@ const MyOrders = () => {
       if (result.success) {
         toast.success("Đánh giá của bạn đã được gửi thành công!");
         handleCloseReviewModal();
+        // Bạn có thể fetch lại đơn hàng ở đây nếu muốn cập nhật UI
       } else {
         toast.error(result.message || "Không thể gửi đánh giá");
       }
     } catch (error) {
       console.error("Error submitting review:", error);
-      toast.error("Có lỗi xảy ra khi gửi đánh giá");
+      toast.error("Có lỗi xảy ra: " + error.message);
     } finally {
       setSubmittingReview(false);
     }
@@ -153,6 +203,11 @@ const MyOrders = () => {
     );
   };
 
+  const handleChangeTab = (status) => {
+    setActiveTab(status);
+    setSearchParams({ tab: status });
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto p-4">
       <h2 className="text-3xl font-bold mb-6 text-center lg:text-left">
@@ -164,7 +219,7 @@ const MyOrders = () => {
         {TABS.map((tab) => (
           <button
             key={tab.status}
-            onClick={() => setActiveTab(tab.status)}
+            onClick={() => handleChangeTab(tab.status)}
             className={`py-3 px-4 text-center font-semibold whitespace-nowrap ${
               activeTab === tab.status
                 ? "border-b-2 border-red-600 text-red-600"
@@ -357,6 +412,43 @@ const MyOrders = () => {
                     placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
                   />
                 </div>
+
+                {/* Input tải ảnh */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Thêm hình ảnh (Tối đa 5 ảnh)
+                  </label>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="w-full text-sm text-slate-500
+                       file:mr-4 file:py-2 file:px-4
+                       file:rounded-full file:border-0
+                       file:text-sm file:font-semibold
+                       file:bg-red-50 file:text-red-600
+                       hover:file:bg-red-100 transition-colors cursor-pointer"
+                  />
+                </div>
+
+                {/* Xem trước ảnh (Preview) */}
+                {uploadFiles.length > 0 && (
+                  <div className="flex gap-3 flex-wrap p-2 bg-slate-50 rounded-lg border border-slate-200">
+                    {uploadFiles.map((file, index) => (
+                      <div key={index} className="relative w-16 h-16">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`preview ${index}`}
+                          className="w-full h-full object-cover rounded-md"
+                          onLoad={
+                            (e) => URL.revokeObjectURL(e.target.src) // <-- ĐÃ SỬA LỖI
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-4">
                   <button

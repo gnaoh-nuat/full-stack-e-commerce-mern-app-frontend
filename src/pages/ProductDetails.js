@@ -179,7 +179,7 @@ const ProductDetails = () => {
                 <div
                   className="w-full h-full min-h-[400px] min-w-[500px] mix-blend-multiply scale-150"
                   style={{
-                    background: `url(${activeImage})`,
+                    backgroundImage: `url(${activeImage})`, // <-- ĐÃ SỬA LỖI
                     backgroundRepeat: "no-repeat",
                     backgroundPosition: `${zoomImageCoordinate.x * 100}% ${
                       zoomImageCoordinate.y * 100
