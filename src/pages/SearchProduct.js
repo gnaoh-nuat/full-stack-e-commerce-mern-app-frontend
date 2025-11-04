@@ -84,7 +84,7 @@ const FilterSidebar = ({
 };
 
 // ===================================================================
-// === CÁC COMPONENT SKELETON ===
+// === CÁC COMPONENT SKELETON (Giữ nguyên) ===
 // ===================================================================
 const SkeletonSidebar = () => (
   <div className="flex flex-col space-y-6">
@@ -128,52 +128,77 @@ const SkeletonCard = () => (
 // === COMPONENT CHÍNH: SEARCH PRODUCT ===
 // ===================================================================
 
-const allCategories = productCategory.reduce((acc, category) => {
-  acc[category.value] = true;
-  return acc;
-}, {});
-
 const SearchProduct = () => {
   const query = useLocation();
-  const [data, setData] = useState([]);
+  const [data, setData] = useState([]); // Mặc định là mảng rỗng
   const [filteredData, setFilteredData] = useState([]);
-  const [loading, setLoading] = useState(true); // Mặc định là `true`
+  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("");
-  const [selectCategory, setSelectCategory] = useState(allCategories);
+
+  // FIX 1: Giá trị mặc định là object rỗng
+  const [selectCategory, setSelectCategory] = useState({});
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
   const searchQuery = new URLSearchParams(query.search).get("q");
 
   const loadingList = new Array(8).fill(null);
 
+  // FIX 2 & 3: Sửa fetchProduct để xử lý ký tự đặc biệt VÀ lỗi crash
   const fetchProduct = async () => {
     setLoading(true);
-    const response = await fetch(SummaryApi.searchProduct.url + query.search);
-    const dataResponse = await response.json();
-    setLoading(false);
+    try {
+      const apiUrl = new URL(SummaryApi.searchProduct.url);
+      const queryValue = new URLSearchParams(query.search).get("q");
+      apiUrl.searchParams.set("q", queryValue || "");
 
-    setData(dataResponse.data);
+      const response = await fetch(apiUrl.toString());
+
+      // Kiểm tra lỗi HTTP (404, 500...)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const dataResponse = await response.json();
+
+      // Kiểm tra xem data trả về có phải là mảng không
+      if (Array.isArray(dataResponse.data)) {
+        setData(dataResponse.data);
+      } else {
+        // Nếu API trả về cấu trúc lạ, set mảng rỗng
+        console.warn("API response data is not an array:", dataResponse);
+        setData([]);
+      }
+    } catch (error) {
+      // Bất kỳ lỗi nào (mạng, parse, http) đều set mảng rỗng
+      console.error("Lỗi khi tìm kiếm sản phẩm:", error);
+      setData([]);
+    } finally {
+      // Luôn tắt loading
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchProduct();
-    // Reset bộ lọc về "chọn tất cả" mỗi khi tìm kiếm mới
-    setSelectCategory(allCategories);
+    // FIX 1 (tiếp): Reset bộ lọc về rỗng khi tìm kiếm
+    setSelectCategory({});
     setSortBy("");
   }, [query.search]);
 
+  // FIX 1 (tiếp): Sửa logic lọc
   useEffect(() => {
-    let tempFilteredData = [...data];
+    let tempFilteredData = [...data]; // 'data' giờ luôn là mảng (iterable)
     const arrayOfCategory = Object.keys(selectCategory).filter(
       (key) => selectCategory[key]
     );
 
+    // Chỉ lọc khi 'arrayOfCategory' có phần tử
     if (arrayOfCategory.length > 0) {
       tempFilteredData = tempFilteredData.filter((product) =>
         arrayOfCategory.includes(product.category)
       );
-    } else {
-      tempFilteredData = [];
     }
+    // Bỏ khối 'else'
 
     if (sortBy === "asc") {
       tempFilteredData.sort((a, b) => a.sellingPrice - b.sellingPrice);

@@ -171,12 +171,16 @@ const SummaryApi = {
     method: "post",
   },
   updateReview: {
-    url: `${backendDomain}/api/update-review`,
+    url: `${backendDomain}/api/update-review/:id`,
     method: "put",
   },
   deleteReview: {
     url: `${backendDomain}/api/delete-review`,
     method: "delete",
+  },
+  checkIfReviewed: {
+    url: `${backendDomain}/api/check-review`,
+    method: "post",
   },
 };
 

@@ -1,15 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import SummaryApi from "../common";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import displayVNDCurrency from "../helpers/displayCurrency";
 import { FaStar } from "react-icons/fa";
 import { useSearchParams } from "react-router-dom";
-
-// Import helper tải ảnh
 import uploadImage from "../helpers/uploadImage";
 
-// TABS không đổi
 const TABS = [
   { name: "Chờ xác nhận", status: "PENDING" },
   { name: "Đang xử lý", status: "PROCESSING" },
@@ -18,7 +15,6 @@ const TABS = [
   { name: "Đã hủy", status: "CANCELLED" },
 ];
 
-// Hàm getStatusProps
 const getStatusProps = (status) => {
   const tab = TABS.find((t) => t.status === status);
   const name = tab ? tab.name : status;
@@ -49,14 +45,51 @@ const MyOrders = () => {
     comment: "",
   });
   const [submittingReview, setSubmittingReview] = useState(false);
-
-  // State để lưu các file người dùng chọn (File objects)
   const [uploadFiles, setUploadFiles] = useState([]);
 
+  // State mới để lưu trạng thái review
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [existingReviewId, setExistingReviewId] = useState(null);
+
+  // State mới để lưu trạng thái review của các sản phẩm
+  const [reviewStatuses, setReviewStatuses] = useState({}); // Map: { productId: { hasReviewed, review } }
+  const [loadingReviews, setLoadingReviews] = useState(false); // State loading riêng cho review
+
+  // Bọc hàm checkReviewStatus trong useCallback
+  const checkReviewStatus = useCallback(async (productId) => {
+    try {
+      const response = await fetch(SummaryApi.checkIfReviewed.url, {
+        method: SummaryApi.checkIfReviewed.method,
+        credentials: "include",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ productId }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        return {
+          hasReviewed: result.hasReviewed,
+          review: result.review || null,
+        };
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error("Error checking review status:", error);
+      return { hasReviewed: false, review: null };
+    }
+  }, []);
+
+  // Cập nhật useEffect để tải đơn hàng VÀ trạng thái review
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchOrdersAndReviews = async () => {
       setLoading(true);
       setOrders([]);
+      setReviewStatuses({});
+      setLoadingReviews(false);
 
       try {
         const response = await fetch(
@@ -67,8 +100,36 @@ const MyOrders = () => {
           }
         );
         const responseData = await response.json();
+
         if (responseData.success) {
-          setOrders(responseData.data);
+          const fetchedOrders = responseData.data;
+          setOrders(fetchedOrders);
+
+          // LOGIC MỚI: Nếu là tab "Đã giao", kiểm tra review cho tất cả sản phẩm
+          if (activeTab === "DELIVERED" && fetchedOrders.length > 0) {
+            setLoadingReviews(true);
+
+            const productIds = new Set();
+            fetchedOrders.forEach((order) => {
+              order.orderItems.forEach((item) => {
+                if (item.product?._id) {
+                  productIds.add(item.product._id);
+                }
+              });
+            });
+
+            const statusMap = {};
+            const checkPromises = Array.from(productIds).map(
+              async (productId) => {
+                const status = await checkReviewStatus(productId);
+                statusMap[productId] = status;
+              }
+            );
+
+            await Promise.all(checkPromises);
+            setReviewStatuses(statusMap);
+            setLoadingReviews(false);
+          }
         } else {
           toast.error(responseData.message);
         }
@@ -79,15 +140,36 @@ const MyOrders = () => {
       }
     };
 
-    fetchOrders();
-  }, [activeTab]);
+    fetchOrdersAndReviews();
+  }, [activeTab, checkReviewStatus]);
 
-  // Handle open review modal
+  // Đơn giản hóa handleOpenReviewModal, không cần gọi API
   const handleOpenReviewModal = (product) => {
+    const status = reviewStatuses[product._id];
+
+    if (!status) {
+      toast.error("Trạng thái đánh giá chưa sẵn sàng, vui lòng thử lại.");
+      return;
+    }
+
     setReviewingProduct(product);
+
+    if (status.hasReviewed && status.review) {
+      setIsEditMode(true);
+      setExistingReviewId(status.review._id);
+      setReviewForm({
+        rating: status.review.rating || 5,
+        comment: status.review.comment || "",
+      });
+      setUploadFiles([]);
+    } else {
+      setIsEditMode(false);
+      setExistingReviewId(null);
+      setReviewForm({ rating: 5, comment: "" });
+      setUploadFiles([]);
+    }
+
     setShowReviewModal(true);
-    setReviewForm({ rating: 5, comment: "" });
-    setUploadFiles([]); // Reset file khi mở modal
   };
 
   // Handle close review modal
@@ -95,13 +177,14 @@ const MyOrders = () => {
     setShowReviewModal(false);
     setReviewingProduct(null);
     setReviewForm({ rating: 5, comment: "" });
-    setUploadFiles([]); // Reset file khi đóng modal
+    setUploadFiles([]);
+    setIsEditMode(false);
+    setExistingReviewId(null);
   };
 
   // Handle file change
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    // Giới hạn số lượng file (ví dụ: 5)
     if (files.length > 5) {
       toast.error("Bạn chỉ có thể tải lên tối đa 5 ảnh.");
       setUploadFiles(files.slice(0, 5));
@@ -110,7 +193,7 @@ const MyOrders = () => {
     }
   };
 
-  // Handle submit review (Sử dụng helper)
+  // *** HÀM QUAN TRỌNG ĐÃ SỬA LỖI ***
   const handleSubmitReview = async (e) => {
     e.preventDefault();
 
@@ -120,18 +203,14 @@ const MyOrders = () => {
     }
 
     setSubmittingReview(true);
-    let uploadedImageUrls = []; // Mảng chứa URL sau khi upload
+    let uploadedImageUrls = [];
 
     try {
-      // BƯỚC 1: Tải ảnh lên (nếu có)
+      // BƯỚC 1: Tải ảnh lên (nếu có ảnh mới)
       if (uploadFiles.length > 0) {
-        // Tạo một mảng các promise, mỗi promise là một lệnh gọi uploadImage
         const uploadPromises = uploadFiles.map((file) => uploadImage(file));
-
-        // Đợi tất cả các file upload xong
         const uploadResults = await Promise.all(uploadPromises);
 
-        // Kiểm tra xem có upload nào thất bại không
         const failedUploads = uploadResults.filter((res) => !res.success);
         if (failedUploads.length > 0) {
           throw new Error(
@@ -139,34 +218,71 @@ const MyOrders = () => {
           );
         }
 
-        // Lấy URL từ kết quả
-        // Giả định rằng fileController trả về { result: [{ imageUrl: '...' }] }
         uploadedImageUrls = uploadResults.map((res) => res.result[0].imageUrl);
       }
 
-      // BƯỚC 2: Gửi đánh giá (với các URL ảnh đã upload)
-      const reviewPayload = {
-        product: reviewingProduct._id,
-        rating: reviewForm.rating,
-        comment: reviewForm.comment,
-        reviewImages: uploadedImageUrls, // Gửi mảng URL
-      };
+      // BƯỚC 2: Gửi hoặc cập nhật đánh giá
+      let response;
 
-      const response = await fetch(SummaryApi.addReview.url, {
-        method: SummaryApi.addReview.method,
-        credentials: "include",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(reviewPayload),
-      });
+      if (isEditMode && existingReviewId) {
+        // *** SỬA LỖI PAYLOAD: Payload cho UPDATE KHÔNG chứa 'product' ***
+        const updatePayload = {
+          rating: reviewForm.rating,
+          comment: reviewForm.comment,
+          reviewImages: uploadedImageUrls,
+        };
+
+        // Code này của bạn đã đúng, nó sẽ hoạt động khi SummaryApi được sửa
+        const updateUrl = SummaryApi.updateReview.url.replace(
+          ":id",
+          existingReviewId
+        );
+
+        response = await fetch(updateUrl, {
+          method: SummaryApi.updateReview.method,
+          credentials: "include",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(updatePayload), // Dùng payload cập nhật
+        });
+      } else {
+        // Payload cho CREATE BẮT BUỘC chứa 'product'
+        const createPayload = {
+          product: reviewingProduct._id,
+          rating: reviewForm.rating,
+          comment: reviewForm.comment,
+          reviewImages: uploadedImageUrls,
+        };
+
+        response = await fetch(SummaryApi.addReview.url, {
+          method: SummaryApi.addReview.method,
+          credentials: "include",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(createPayload), // Dùng payload tạo mới
+        });
+      }
 
       const result = await response.json();
 
       if (result.success) {
-        toast.success("Đánh giá của bạn đã được gửi thành công!");
+        toast.success(
+          isEditMode
+            ? "Đánh giá đã được cập nhật thành công!"
+            : "Đánh giá của bạn đã được gửi thành công!"
+        );
         handleCloseReviewModal();
-        // Bạn có thể fetch lại đơn hàng ở đây nếu muốn cập nhật UI
+
+        // Cập nhật lại trạng thái review tại local
+        setReviewStatuses((prev) => ({
+          ...prev,
+          [reviewingProduct._id]: {
+            hasReviewed: true,
+            review: result.data || { _id: existingReviewId, ...reviewForm },
+          },
+        }));
       } else {
         toast.error(result.message || "Không thể gửi đánh giá");
       }
@@ -203,6 +319,7 @@ const MyOrders = () => {
     );
   };
 
+  // handleChangeTab
   const handleChangeTab = (status) => {
     setActiveTab(status);
     setSearchParams({ tab: status });
@@ -275,52 +392,65 @@ const MyOrders = () => {
 
                 {/* 2. Body: Products */}
                 <div className="p-4 space-y-3">
-                  {order.orderItems.map((item) => (
-                    <div
-                      key={item.product?._id || item._id}
-                      className="flex items-start space-x-3 p-3 rounded-lg bg-slate-50"
-                    >
-                      <Link
-                        to={`/product/${item.product?._id}`}
-                        className="flex items-start space-x-3 flex-1 hover:opacity-80 transition-opacity"
-                      >
-                        <div className="w-16 h-16 flex-shrink-0 bg-slate-100 rounded">
-                          {item.product?.productImage &&
-                          item.product.productImage.length > 0 ? (
-                            <img
-                              src={item.product.productImage[0]}
-                              alt={item.product.productName}
-                              className="w-full h-full object-cover rounded"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-slate-200 rounded"></div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-800 text-sm">
-                            {item.product?.productName ||
-                              "Sản phẩm không có tên"}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-1">
-                            SL: {item.quantity}
-                          </p>
-                          <div className="text-sm font-medium text-slate-800 mt-1">
-                            {displayVNDCurrency(item.unitPrice * item.quantity)}
-                          </div>
-                        </div>
-                      </Link>
+                  {order.orderItems.map((item) => {
+                    // Logic cho nút Đánh giá
+                    const reviewStatus = reviewStatuses[item.product?._id];
+                    const buttonText = loadingReviews
+                      ? "..." // Đang tải trạng thái
+                      : reviewStatus?.hasReviewed
+                      ? "Sửa đánh giá"
+                      : "Đánh giá ngay";
 
-                      {/* Nút Đánh giá - Chỉ hiện với đơn DELIVERED */}
-                      {order.orderStatus === "DELIVERED" && (
-                        <button
-                          onClick={() => handleOpenReviewModal(item.product)}
-                          className="px-4 py-2 bg-red-600 text-white text-sm rounded-full hover:bg-red-700 transition-all font-medium whitespace-nowrap"
+                    return (
+                      <div
+                        key={item.product?._id || item._id}
+                        className="flex items-start space-x-3 p-3 rounded-lg bg-slate-50"
+                      >
+                        <Link
+                          to={`/product/${item.product?._id}`}
+                          className="flex items-start space-x-3 flex-1 hover:opacity-80 transition-opacity"
                         >
-                          Đánh giá
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          <div className="w-16 h-16 flex-shrink-0 bg-slate-100 rounded">
+                            {item.product?.productImage &&
+                            item.product.productImage.length > 0 ? (
+                              <img
+                                src={item.product.productImage[0]}
+                                alt={item.product.productName}
+                                className="w-full h-full object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-slate-200 rounded"></div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-800 text-sm">
+                              {item.product?.productName ||
+                                "Sản phẩm không có tên"}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-1">
+                              SL: {item.quantity}
+                            </p>
+                            <div className="text-sm font-medium text-slate-800 mt-1">
+                              {displayVNDCurrency(
+                                item.unitPrice * item.quantity
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+
+                        {/* Nút Đánh giá */}
+                        {order.orderStatus === "DELIVERED" && (
+                          <button
+                            onClick={() => handleOpenReviewModal(item.product)}
+                            disabled={loadingReviews} // Disable khi đang tải
+                            className="px-4 py-2 bg-red-600 text-white text-sm rounded-full hover:bg-red-700 transition-all font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {buttonText}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* 3. Footer */}
@@ -362,7 +492,7 @@ const MyOrders = () => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-slate-800">
-                  Đánh giá sản phẩm
+                  {isEditMode ? "Sửa đánh giá sản phẩm" : "Đánh giá sản phẩm"}
                 </h3>
                 <button
                   onClick={handleCloseReviewModal}
@@ -386,6 +516,11 @@ const MyOrders = () => {
                   <p className="font-medium text-slate-800">
                     {reviewingProduct?.productName}
                   </p>
+                  {isEditMode && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Bạn đang chỉnh sửa đánh giá cũ
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -416,7 +551,9 @@ const MyOrders = () => {
                 {/* Input tải ảnh */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Thêm hình ảnh (Tối đa 5 ảnh)
+                    {isEditMode
+                      ? "Thêm ảnh mới (Tối đa 5 ảnh)"
+                      : "Thêm hình ảnh (Tối đa 5 ảnh)"}
                   </label>
                   <input
                     type="file"
@@ -441,9 +578,7 @@ const MyOrders = () => {
                           src={URL.createObjectURL(file)}
                           alt={`preview ${index}`}
                           className="w-full h-full object-cover rounded-md"
-                          onLoad={
-                            (e) => URL.revokeObjectURL(e.target.src) // <-- ĐÃ SỬA LỖI
-                          }
+                          onLoad={(e) => URL.revokeObjectURL(e.target.src)}
                         />
                       </div>
                     ))}
@@ -456,7 +591,11 @@ const MyOrders = () => {
                     disabled={submittingReview}
                     className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {submittingReview ? "Đang gửi..." : "Gửi đánh giá"}
+                    {submittingReview
+                      ? "Đang gửi..."
+                      : isEditMode
+                      ? "Cập nhật đánh giá"
+                      : "Gửi đánh giá"}
                   </button>
                   <button
                     type="button"
