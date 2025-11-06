@@ -63,7 +63,9 @@ const FilterSidebar = ({
               <input
                 type="checkbox"
                 name={"category"}
-                checked={selectCategory[categoryName?.value] || false}
+                // Sửa lỗi: Đảm bảo key tồn tại trong selectCategory
+                // '!!' (dấu !! an toàn) sẽ chuyển đổi undefined thành false
+                checked={!!selectCategory[categoryName?.value]}
                 value={categoryName?.value}
                 id={categoryName?.value}
                 onChange={handleSelectCategory}
@@ -128,6 +130,18 @@ const SkeletonCard = () => (
 // === COMPONENT CHÍNH: SEARCH PRODUCT ===
 // ===================================================================
 
+// FIX 4: Hàm trợ giúp để tạo state "tất cả được chọn"
+const initializeAllCategories = () => {
+  // Dùng reduce để biến mảng productCategory thành object
+  // Vd: { "airpodes": true, "watches": true, ... }
+  return productCategory.reduce((acc, category) => {
+    if (category.value) {
+      acc[category.value] = true;
+    }
+    return acc;
+  }, {});
+};
+
 const SearchProduct = () => {
   const query = useLocation();
   const [data, setData] = useState([]); // Mặc định là mảng rỗng
@@ -135,15 +149,18 @@ const SearchProduct = () => {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("");
 
-  // FIX 1: Giá trị mặc định là object rỗng
-  const [selectCategory, setSelectCategory] = useState({});
+  // FIX 4: Giá trị mặc định là "tất cả được chọn"
+  const [selectCategory, setSelectCategory] = useState(
+    initializeAllCategories()
+  );
+
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   const searchQuery = new URLSearchParams(query.search).get("q");
 
   const loadingList = new Array(8).fill(null);
 
-  // FIX 2 & 3: Sửa fetchProduct để xử lý ký tự đặc biệt VÀ lỗi crash
+  // FIX 2 & 3: Sửa fetchProduct để xử lý ký tự đặc biệt VÀ lỗi crash (Giữ nguyên)
   const fetchProduct = async () => {
     setLoading(true);
     try {
@@ -153,46 +170,47 @@ const SearchProduct = () => {
 
       const response = await fetch(apiUrl.toString());
 
-      // Kiểm tra lỗi HTTP (404, 500...)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const dataResponse = await response.json();
 
-      // Kiểm tra xem data trả về có phải là mảng không
       if (Array.isArray(dataResponse.data)) {
         setData(dataResponse.data);
       } else {
-        // Nếu API trả về cấu trúc lạ, set mảng rỗng
         console.warn("API response data is not an array:", dataResponse);
         setData([]);
       }
     } catch (error) {
-      // Bất kỳ lỗi nào (mạng, parse, http) đều set mảng rỗng
       console.error("Lỗi khi tìm kiếm sản phẩm:", error);
       setData([]);
     } finally {
-      // Luôn tắt loading
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchProduct();
-    // FIX 1 (tiếp): Reset bộ lọc về rỗng khi tìm kiếm
-    setSelectCategory({});
+    // FIX 4 (tiếp): Reset bộ lọc về "tất cả được chọn" khi tìm kiếm
+    setSelectCategory(initializeAllCategories());
     setSortBy("");
   }, [query.search]);
 
-  // FIX 1 (tiếp): Sửa logic lọc
+  // FIX 1 (tiếp): Sửa logic lọc (Giữ nguyên logic của bạn)
   useEffect(() => {
-    let tempFilteredData = [...data]; // 'data' giờ luôn là mảng (iterable)
+    let tempFilteredData = [...data];
     const arrayOfCategory = Object.keys(selectCategory).filter(
-      (key) => selectCategory[key]
+      (key) => selectCategory[key] // Lấy tất cả key có giá trị 'true'
     );
 
-    // Chỉ lọc khi 'arrayOfCategory' có phần tử
+    // Logic này của bạn vẫn đúng với yêu cầu mới:
+    // 1. Khi "tất cả được chọn" (mặc định), arrayOfCategory.length > 0 -> Lọc.
+    //    Kết quả là tất cả sản phẩm (vì tất cả đều nằm trong bộ lọc).
+    // 2. Khi người dùng bỏ chọn 1, 2 mục... arrayOfCategory.length > 0 -> Lọc.
+    //    Chỉ hiển thị các mục được chọn.
+    // 3. Khi người dùng bỏ chọn TẤT CẢ, arrayOfCategory.length === 0 -> Không lọc.
+    //    Hiển thị TẤT CẢ kết quả (theo logic code hiện tại của bạn).
     if (arrayOfCategory.length > 0) {
       tempFilteredData = tempFilteredData.filter((product) =>
         arrayOfCategory.includes(product.category)

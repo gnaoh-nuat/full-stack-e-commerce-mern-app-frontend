@@ -18,7 +18,6 @@ import PersonalInfo from "../pages/PersonalInfo";
 import Checkout from "../pages/Checkout";
 import MyOrders from "../pages/MyOrders";
 import OrderSuccess from "../pages/OrderSuccess";
-import VnpayReturn from "../pages/VnpayReturn";
 import OrderDetails from "../pages/OrderDetails";
 import AllOrders from "../pages/AllOrders";
 import Contact from "../pages/Contact";
@@ -28,6 +27,7 @@ import PrivacyPolicy from "../pages/PrivacyPolicy";
 import ShippingPolicy from "../pages/ShippingPolicy";
 import SupportHome from "../pages/SupportHome";
 import SupportLayout from "../pages/SupportLayout";
+import PaymentVNPAY from "../components/PaymentVNPAY";
 
 const router = createBrowserRouter([
   {
@@ -65,6 +65,10 @@ const router = createBrowserRouter([
       {
         path: "search",
         element: <SearchProduct />,
+      },
+      {
+        path: "payment-vnpay",
+        element: <PaymentVNPAY />,
       },
       {
         path: "profile",
@@ -113,10 +117,6 @@ const router = createBrowserRouter([
       {
         path: "order-success",
         element: <OrderSuccess />,
-      },
-      {
-        path: "order/vnpay_return", // Trang VNPAY callback
-        element: <VnpayReturn />,
       },
       {
         path: "order/:id", // Trang chi tiết đơn hàng

@@ -1,5 +1,4 @@
 import React, { useContext } from "react";
-import scrollTop from "../helpers/scrollTop";
 import displayINRCurrency from "../helpers/displayCurrency";
 import Context from "../context";
 import addToCart from "../helpers/addToCart";
@@ -10,6 +9,7 @@ const VerticalCard = ({ loading, data = [] }) => {
   const { fetchUserAddToCart } = useContext(Context);
 
   const handleAddToCart = async (e, id) => {
+    e.preventDefault();
     await addToCart(e, id);
     fetchUserAddToCart();
   };
@@ -19,14 +19,14 @@ const VerticalCard = ({ loading, data = [] }) => {
       {loading
         ? loadingList.map((product, index) => {
             return (
-              // === THÊM KEY VÀO ĐÂY ===
               <div
-                key={"loading-" + index} // Dùng index cho list loading
+                key={"loading-" + index}
                 className="w-full min-w-[280px]  md:min-w-[320px] max-w-[280px] md:max-w-[320px]  bg-white rounded-sm shadow "
               >
                 <div className="bg-slate-200 h-48 p-4 min-w-[280px] md:min-w-[145px] flex justify-center items-center animate-pulse"></div>
                 <div className="p-4 grid gap-3">
-                  <h2 className="font-medium text-base md:text-lg text-ellipsis line-clamp-1 text-black p-1 py-2 animate-pulse rounded-full bg-slate-200"></h2>
+                  <div className="font-medium text-base md:text-lg text-ellipsis line-clamp-1 text-black p-1 py-2 animate-pulse rounded-full bg-slate-200"></div>
+
                   <p className="capitalize text-slate-500 p-1 animate-pulse rounded-full bg-slate-200  py-2"></p>
                   <div className="flex gap-3">
                     <p className="text-red-600 font-medium p-1 animate-pulse rounded-full bg-slate-200 w-full  py-2"></p>
@@ -39,18 +39,16 @@ const VerticalCard = ({ loading, data = [] }) => {
           })
         : data.map((product, index) => {
             return (
-              // === THÊM KEY VÀO ĐÂY ===
               <Link
-                key={product?._id || index} // Dùng _id (tốt nhất) hoặc index
+                key={product?._id || index}
                 to={"/product/" + product?._id}
                 className="w-full min-w-[280px]  md:min-w-[300px] max-w-[280px] md:max-w-[300px]  bg-white rounded-sm shadow "
-                onClick={scrollTop}
               >
                 <div className="bg-slate-200 h-48 p-4 min-w-[280px] md:min-w-[145px] flex justify-center items-center">
                   <img
                     src={product?.productImage[0]}
                     className="object-scale-down h-full hover:scale-110 transition-all mix-blend-multiply"
-                    alt={product?.productName} // Thêm alt prop cho accessiblity
+                    alt={product?.productName}
                   />
                 </div>
                 <div className="p-4 grid gap-3">
